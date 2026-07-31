@@ -22,7 +22,27 @@ Skills for interacting with the Censys CLI (`censys`/`cencli`). One data purchas
 
 ## Prerequisites
 
-- `censys` CLI installed and in PATH
-- Authenticated via `censys auth login` (OAuth) or PAT via `censys config auth add`
-- For enrich: org ID configured via `censys config org-id`
-- For censeye / cert history: Threat Hunting module access
+All skills require the [Censys CLI](https://github.com/censys/censys-cli) (`censys`).
+
+### Install
+
+```bash
+pip install censys
+# or
+brew install censys/homebrew-censys/censys
+```
+
+See the [Censys CLI README](https://github.com/censys/censys-cli#readme) for full install options.
+
+### Authenticate
+
+```bash
+censys auth login          # OAuth (interactive)
+# or
+censys config auth add     # PAT (non-interactive)
+```
+
+### Additional config
+
+- For enrich: `censys config org-id`
+- For censeye / cert history: Threat Hunting module access required

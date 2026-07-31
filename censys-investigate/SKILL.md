@@ -32,8 +32,14 @@ triggers:
 - "/censys-investigate 203.0.113.5"
 
 NOT for a single lookup (`censys-view`), a single search (`censys-search`), or
-a censhi-only history request (`censhi`). Go straight to the matching
+a single history request (`censys-timeline`). Go straight to the matching
 per-command skill for those instead of this one.
+
+## Prerequisites
+
+Requires the [Censys CLI](https://github.com/censys/censys-cli) installed
+and authenticated. See the [repo README](../README.md#prerequisites) for
+install and auth steps.
 
 ## Structure
 
@@ -79,11 +85,11 @@ OS indicators. Populate **Host Profile** and **Current Services** in
 ### Step 3 — Historical timeline
 
 ```bash
-censhi <IP> -d 1y -f -o json > data/censhi_host_<IP>.json
+censys history <IP> --duration 1y -O json > data/censys_history_<IP>.json
 ```
 
-Alternative: `censys history <IP> --duration 1y -O json` via the
-`censys-timeline` skill.
+See `censys-timeline` for flag details, event model, and interpretation
+guidance.
 
 Parse: service uptime intervals, service changes, signal rotations, ownership
 events, reverse DNS. Populate **Infrastructure Timeline**.
@@ -93,7 +99,7 @@ events, reverse DNS. Populate **Infrastructure Timeline**.
 For each associated domain:
 
 ```bash
-censhi <domain> -d 1y -o json > data/censhi_dns_<domain>.json
+censys history <domain>:443 --duration 1y -O json > data/censys_history_<domain>.json
 ```
 
 Skip if no domains. Document DNS resolution history, flag previous IPs.
@@ -115,16 +121,15 @@ decision trees below.
 
 ## Data preservation
 
-All raw data, censhi dumps, and pivot query results are saved to `data/`.
+All raw data, history dumps, and pivot query results are saved to `data/`.
 Nothing is discarded.
 
 Naming convention:
 
 - `data/censys_view_<IP>.json`
-- `data/censhi_host_<IP>.json`
-- `data/censhi_dns_<domain>.json`
-- `data/censhi_cert_<sha256_prefix>.json`
 - `data/censys_history_<IP>.json`
+- `data/censys_history_<domain>.json`
+- `data/censys_history_cert_<sha256_prefix>.json`
 - `data/pivot_results/<query_name>.json`
 - `data/pivot_results/<query_name>.err`
 
@@ -150,7 +155,7 @@ indicators.
 ```
 Run censys search for each unique indicator (excluding target IP)
   ├─ Hits found → for each hit:
-  │   ├─ Run censhi on the hit IP (save to data/)
+  │   ├─ Run censys history on the hit IP (save to data/)
   │   ├─ Compare: timeline overlap? shared signals? same stack?
   │   │   ├─ Strong overlap → linked infrastructure. Add indicators, re-enter Tree 1
   │   │   └─ Weak/no overlap → coincidence, document why
@@ -192,7 +197,7 @@ Entry: Any pivot returned candidate matches.
 
 ```
 For each candidate:
-  ├─ Run censhi (host history + cert follow, save to data/)
+  ├─ Run censys history (host history + cert follow, save to data/)
   ├─ Check ownership timeline:
   │   ├─ Change detected → shared indicator before or after boundary?
   │   │   ├─ Before → previous tenant. Exclude.
@@ -215,12 +220,12 @@ domains.
 
 ```
 For each previous IP:
-  ├─ Run censhi host history (save to data/)
+  ├─ Run censys history on the IP (save to data/)
   ├─ Shared hosting/parking → dead end, document
   ├─ Similar service profile → enter Tree 4
   └─ Unrelated → document and move on
 For each new domain:
-  ├─ Run censhi DNS history (save to data/)
+  ├─ Run censys history on the domain (save to data/)
   ├─ Other IPs → re-enter this tree
   └─ Note registration patterns
 ```
@@ -391,6 +396,5 @@ Reference `censys-cql` for field paths, `censys-search` for CLI execution.
 - **censys-censeye** — automated rarity-bounded pivot discovery as alternative to manual indicator triage.
 - **censys-enrich** — fast bulk triage of candidate lists from pivot results.
 - **censys-timeline** — temporal analysis via `censys history` for baseline Step 3 and deep-dive (Tree 4).
-- **censhi** (user skill) — historical host/cert/DNS reports via censhi CLI. Alternative to censys-timeline for baseline Step 3; provides ownership-change analysis.
 - **censys-cql** — CQL field paths, query syntax, known-noise indicators. Consulted during indicator triage (baseline Step 5) and pivot construction.
 - **censys-analyze** — post-retrieval jq/SQLite analysis of saved pivot results.
