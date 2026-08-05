@@ -160,6 +160,24 @@ censys search "<query>" --max-pages -1 -S 2>/dev/null | \
 - **Rate limited**: back off and retry after a delay. Check remaining credits with `censys credits` before issuing another large/exhaustive query.
 - **Empty results with a PAT and multi-org access**: pass `--org-id`/`-o` explicitly — the query may be scoping to the wrong (or no) organization.
 
+## Parsing CLI output programmatically
+
+When redirecting `censys search -O json` to a file and parsing it later:
+
+1. **Status line on first line.** The CLI writes a status line to the output
+   (e.g., `200 (OK) - 347ms - pages: 1`) before the JSON array. Skip or
+   discard the first line before parsing JSON. In Python:
+   `f.readline(); data = json.load(f)`.
+2. **Result is a JSON array.** The output (after the status line) is a single
+   JSON array `[...]`, not NDJSON — unless `--streaming`/`-S` is passed.
+3. **Empty results may be `null`.** Some queries return `null` instead of `[]`
+   for zero results. Defensive parsing: `data = json.load(f) or []`.
+4. **`2>/dev/null` for clean piping.** The status line goes to stdout (not
+   stderr) when using `-O json` without redirection. When piping directly into
+   `jq`, use `2>/dev/null` to suppress any stderr diagnostics, but be aware the
+   status line is in the JSON stream — `jq` will error on it unless the output
+   is saved to a file and the first line is stripped.
+
 ## Caveats
 
 - `--max-pages -1` performs an exhaustive pull across all matching pages — this can consume significant API credits on broad queries. Confirm scope with the user (or add tightening conditions) before running an unbounded exhaustive search on a broad query.

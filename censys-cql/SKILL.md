@@ -1,7 +1,7 @@
 ---
 name: censys-cql
 description: Use when the user needs help with CQL syntax, censys query syntax, how to write a censys query, what censys fields are available, or censys query help — field paths, operators, quoting/escaping rules, or example queries for hosts, certificates, and web properties. Trigger phrases include "CQL syntax," "censys query syntax," "how do I write a censys query," "what censys fields are available," and "censys query help." This is a reference skill, not a CLI wrapper — defer to censys-search, censys-aggregate, or censys-view to actually execute the query once it's constructed.
-version: 0.2.0
+version: 0.3.0
 ---
 
 # Censys CQL Reference
@@ -33,7 +33,7 @@ This skill is a reference only — it does not execute queries. Once the query s
 ## Host fields
 
 - **Network**: `host.ip`, `host.services.port`, `host.services.protocol`, `host.services.transport_protocol`
-- **Banners/headers**: `host.services.banner`, `host.services.http.response.headers.*`. Note: for HTTP body, title, and favicon content, use the Endpoint HTTP fields below — `host.services.http.response.body` does NOT work in CQL v2.
+- **Banners/headers**: `host.services.banner`, `host.services.banner_hash_sha256`, `host.services.http.response.headers.*`. Note: for HTTP body, title, and favicon content, use the Endpoint fields below — `host.services.http.response.body` does NOT work in CQL v2.
 - **TLS/certs**: `host.services.tls.certificates.leaf_fp_sha_256`, `host.services.tls.certificates.leaf_data.*`
 - **SSH**: `host.services.ssh.server_host_key.fingerprint_sha256`
 - **Fingerprints**: `host.services.jarm`, `host.services.tls.ja3s`
@@ -44,11 +44,16 @@ This skill is a reference only — it does not execute queries. Once the query s
 - **Software**: `host.services.software.vendor`, `host.services.software.product`, `host.services.software.version`
 - **Host metadata**: `host.service_count` (number of services — useful for profiling hosts with a specific service footprint)
 
-### Endpoint HTTP fields
+### Endpoint fields
 
-These fields query HTTP response content at the endpoint level. Note the
-`endpoints.` path component — `host.services.http.*` does NOT work for these;
-the extra nesting is required.
+Certain service-level data lives under `host.services.endpoints.<type>.*`, NOT
+directly under `host.services.<type>.*`. The `endpoints.` path component is
+required — omitting it returns a 422 "Field not found." This applies to **all**
+endpoint-extracted data: HTTP content, C2 framework configs, and any future
+endpoint type Censys adds. When in doubt about a service sub-field, try the
+`endpoints.` path first.
+
+#### HTTP
 
 | Field | Path |
 |---|---|
@@ -57,6 +62,18 @@ the extra nesting is required.
 | Body content (text search) | `host.services.endpoints.http.body` |
 | Favicon hash (SHA-256) | `host.services.endpoints.http.favicons.hash_sha256` |
 | HTML tags | `host.services.endpoints.http.html_tags` |
+
+#### Cobalt Strike
+
+| Field | Path |
+|---|---|
+| Watermark | `host.services.endpoints.cobalt_strike.x64.watermark` |
+| Public key | `host.services.endpoints.cobalt_strike.x64.public_key` |
+
+Both `x64` and `x86` arch variants exist. These fields only match hosts with
+**currently active** CS listeners — hosts that had CS historically but are now
+dark (offline/firewalled) will not appear. Verify the field is indexed by
+running a wildcard query (`field:*`) before interpreting 0 results as "unique."
 
 ## Certificate fields
 
@@ -112,6 +129,12 @@ censys search 'host.services.endpoints.http.body:"index-Bv1WZ4hk.js"'
 
 # 13. Hosts with a specific HTML title
 censys search 'host.services.endpoints.http.html_title="Connection Manager"'
+
+# 14. Hosts running Cobalt Strike with a specific watermark
+censys search 'host.services.endpoints.cobalt_strike.x64.watermark=987654321'
+
+# 15. Hosts running Cobalt Strike with a specific public key
+censys search 'host.services.endpoints.cobalt_strike.x64.public_key="<base64_key>"'
 ```
 
 ## Query construction patterns
@@ -176,6 +199,8 @@ CQL search fields do NOT always match the JSON paths in `censys view` / `censys 
 | HTML title | `host.services.endpoints.http.html_title` | `.services[].endpoints[].http.html_title` |
 | Body content | `host.services.endpoints.http.body` | `.services[].endpoints[].http.body` |
 | Favicon hash | `host.services.endpoints.http.favicons.hash_sha256` | `.services[].endpoints[].http.favicons[].hash_sha256` |
+| CS watermark | `host.services.endpoints.cobalt_strike.x64.watermark` | `.services[].endpoints[].cobalt_strike.x64.watermark` |
+| CS public key | `host.services.endpoints.cobalt_strike.x64.public_key` | `.services[].endpoints[].cobalt_strike.x64.public_key` |
 
 ## Escaping rules
 
@@ -190,10 +215,11 @@ CQL search fields do NOT always match the JSON paths in `censys view` / `censys 
    host field paths. The Censys web UI does not — queries that work in the browser
    will fail with a 422 on the CLI.
 
-2. **`endpoints.` level for HTTP content fields.** HTTP response body, title, and
-   favicon fields live under `host.services.endpoints.http.*`, NOT
-   `host.services.http.*`. The extra `endpoints.` nesting is required. See the
-   Endpoint HTTP fields table above.
+2. **`endpoints.` level for all endpoint-extracted data.** HTTP content, Cobalt
+   Strike configs, and other endpoint-level fields live under
+   `host.services.endpoints.<type>.*`, NOT `host.services.<type>.*`. The extra
+   `endpoints.` nesting is required for every endpoint type. See the Endpoint
+   fields tables above.
 
 3. **No direct header-based queries.** Compound queries on specific HTTP headers
    (e.g., `host.services.http.headers.(key=X-Powered-By and value.headers=Express)`)
@@ -222,6 +248,8 @@ attribution. Check this list during indicator triage before building pivot queri
 | Common JARM fingerprints for Node.js/Express | Too many matches for attribution when used as the sole pivot. Combine with other indicators. |
 | Font Awesome CDN SRI hashes | Shared CDN resource. Referenced by millions of pages. |
 | Generic inline CSS (`width: 100vw; height: 100vh; display: flex`) | Common layout pattern. Produces false positives from firewall/appliance UIs. |
+| Cobalt Strike watermark `987654321` | Cracked/leaked CS license. 77+ hosts globally (predominantly Chinese cloud: Tencent, Alibaba, Huawei). Shared across unrelated operators — not attribution-grade. |
+| Cobalt Strike empty-404 banner hash | Default CS HTTP listener response: `Server: Apache`, 0-byte body, 404 status. Matches any default-config CS listener globally. |
 
 This section should grow as investigations reveal new noise patterns.
 

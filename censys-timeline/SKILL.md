@@ -180,13 +180,48 @@ to `censys-analyze` once the timeline JSON is on disk.
   role) is a candidate for new deployment or compromise, and warrants closer
   inspection of what else changed around the same `event_time`.
 
+## Performance characteristics
+
+Active hosts accumulate roughly 50–100 events per month. Expect these ranges
+for a `--duration 1y` pull:
+
+| Host activity level | Events | Wall-clock time |
+|---|---|---|
+| Quiet (1–3 services, stable) | 200–600 | 15–45 seconds |
+| Moderate (5–10 services, some churn) | 800–1500 | 45–90 seconds |
+| Active (10+ services, frequent rotation) | 1500–3000 | 90–180 seconds |
+
+For bulk history pulls across many hosts:
+
+- **Chunk into batches of 3–5.** Running 50 concurrent `censys history` calls
+  will exhaust rate limits and timeout. Sequential batches of 3–5 with extended
+  timeouts (300s+) are more reliable.
+- **Avoid shell parallelism with `-O json`.** Parallel subshells writing JSON
+  to separate files is fine, but merging concurrent JSON outputs into one
+  stream produces parse errors.
+- **Budget time.** 50 hosts × 1-year history ≈ 25–50 minutes of sequential
+  pull time. Plan accordingly and save each result to `data/` as it completes.
+
+## Parsing CLI output programmatically
+
+When redirecting `censys history -O json` to a file and parsing it later:
+
+1. **Status line on first line.** The CLI writes a status line (e.g.,
+   `200 (OK) - 2.1s`) before the JSON array. Skip or discard the first line
+   before parsing JSON. In Python: `f.readline(); data = json.load(f)`.
+2. **Empty results may be `null`.** Some hosts return `null` instead of `[]`
+   for zero events. Defensive parsing: `data = json.load(f) or []`.
+3. **Large outputs.** A 3000-event history can be several MB of JSON. For
+   repeated analysis passes, save to disk and use `jq` or load into
+   a Python dict once rather than re-pulling.
+
 ## Error handling
 
 | Error | Cause | Resolution |
 |---|---|---|
 | Exit code 2, unsupported format | `-O short` or `-O template` passed to `history` | Use `json`, `yaml`, or `tree` instead |
 | `[Threat Hunting Required]` (or similar entitlement error) | Certificate history requested without Threat Hunting module access | Confirm module entitlement, or fall back to host/web-property history if the cert itself isn't the actual target |
-| Slow response / rate limited | Window too wide (e.g. `1y`) or too many concurrent history pulls | Start with `--duration 7d`, confirm the signal is there, then widen incrementally rather than jumping straight to a multi-year pull |
+| Slow response / rate limited | Window too wide (e.g. `1y`) or too many concurrent history pulls | Start with `--duration 7d`, confirm the signal is there, then widen incrementally rather than jumping straight to a multi-year pull. See Performance characteristics above for expected times. |
 | Empty result set | No events in the requested window | Widen the window, or confirm the asset had any Censys-observed activity at all via `censys view` first |
 
 ## Caveats
