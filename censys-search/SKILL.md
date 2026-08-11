@@ -185,6 +185,47 @@ When redirecting `censys search -O json` to a file and parsing it later:
 - `--fields` only trims the returned payload — it does not change which records match the query. Filtering must still happen in the CQL query itself or via post-retrieval `jq` filtering.
 - Results are subject to Censys data freshness/indexing lag; a very recent scan may not yet appear in search results.
 - `--collection-id` requires a valid collection UUID that the authenticated identity has access to; an unrecognized or unauthorized UUID returns an error rather than an empty result set.
+- **Run `censys` commands one at a time.** The CLI keeps a local cache database and takes a write lock on it. Two or more concurrent `censys` processes fail with `failed to set journal_mode WAL: database is locked (261)`. The command exits 0 and writes an empty output file, so the failure is easy to miss. Check that each output file is not empty before you use it. Run batches in a sequential loop, not with `&`.
+- **To count matching hosts, page the query** and count the records:
+
+  ```bash
+  censys search '<query>' --max-pages -1 --page-size 100 -O json | jq 'length'
+  ```
+
+  Do not add `censys aggregate` buckets to get a total — `-n` limits the bucket list (default 25) and the sum can be far below the true total. See `censys-aggregate`.
+
+## Managing collections (no CLI support)
+
+`censys search` and `censys aggregate` can *read* a collection with `-c`, but the CLI cannot create, update, list, or delete one. Use the Platform API for that. Authenticate with the same environment variables the CLI uses (`CENSYS_PLATFORM_TOKEN`, `CENSYS_PLATFORM_ORGID`).
+
+Base URL: `https://api.platform.censys.io/v3/collections`. Every request needs `?organization_id=$CENSYS_PLATFORM_ORGID`.
+
+| Action | Method | Path |
+|---|---|---|
+| List | `GET` | `/v3/collections` |
+| Read one | `GET` | `/v3/collections/<id>` |
+| Create | `POST` | `/v3/collections` |
+| **Update** | **`PUT`** | `/v3/collections/<id>` |
+
+Create and update take the same JSON body: `{"name": ..., "description": ..., "query": ...}`.
+
+```bash
+# create
+jq -n --arg n "My collection" --arg d "What it tracks" --arg q '<CQL>' \
+  '{name:$n, description:$d, query:$q}' > /tmp/c.json
+curl -sS -X POST -H "Authorization: Bearer $CENSYS_PLATFORM_TOKEN" \
+  -H "Content-Type: application/json" --data @/tmp/c.json \
+  "https://api.platform.censys.io/v3/collections?organization_id=$CENSYS_PLATFORM_ORGID"
+```
+
+Notes:
+
+- **`PUT` is the update verb.** `PATCH` and `POST` against `/v3/collections/<id>` both return HTTP 405.
+- Build the JSON body with `jq -n --arg`, not a shell heredoc. CQL queries contain double quotes and backslash escapes that break under manual shell quoting.
+- **The list endpoint paginates.** It returns 100 collections per page plus `result.next_page_token`. Loop on that token until it is empty. A new collection does not always appear on page 1, so do not conclude that creation failed after checking one page.
+- After a create or an update, `status` is `populating` and `total_assets` is `0`. The status becomes `active` and the count settles after a short delay. An update sets `status_reason` to `query_changed`.
+- Verify membership with a collection-scoped search: `censys search -c <id> '<broad query>' --max-pages -1 -O json | jq 'length'`.
+- Collections are visible to the whole organization. Write a description that explains what the collection tracks, which known-benign members it contains and why, and which indicators were deliberately left out.
 
 ## Cross-references
 

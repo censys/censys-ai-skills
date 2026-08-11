@@ -113,8 +113,17 @@ Extract all pivotable indicators from steps 2–4. Categorize using
   strings, custom ETags
 - **Broad / Noise** — common software versions, default hostnames, shared CDN
   hashes, framework defaults
-- **Unknown** — run a quick count: `censys search '<query>' --page-size 1
-  --max-pages 1`. 0–5 hits → unique. 25+ → broad.
+- **Unknown** — count the hosts that match, then classify. 0–5 hits → unique.
+  25+ → broad.
+
+  ```bash
+  censys search '<query>' --max-pages -1 --page-size 100 -O json | jq 'length'
+  ```
+
+  Do not count with `--page-size 1 --max-pages 1`. That command returns one
+  record and no total. Do not count by adding `censys aggregate` buckets either:
+  `-n` limits the bucket list and the default is 25, so the sum can be far below
+  the true total. See `censys-aggregate` for measured evidence.
 
 **Shared-tooling pitfall:** C2 framework identifiers (Cobalt Strike watermarks,
 Sliver implant IDs, Mythic callback tokens) can be shared across unrelated
@@ -124,6 +133,36 @@ appears on 77+ unrelated hosts globally. Treat these as Broad unless the
 population is very small (< 5 hosts). The C2 framework's *public key* or
 *beacon config URIs* are more likely to be operator-specific than the license
 watermark.
+
+**Hosting-provider fleet artifact:** a provider can run its own service on every
+VPS it rents. That service then appears on every host in the cluster you hunt,
+and it looks like operator tradecraft. It is not. It carries no attribution
+weight, and a query that uses it is locked to that provider even when the query
+contains no ASN filter — so the query returns zero after the operator changes
+provider.
+
+Before you classify any port, banner, or service as operator-specific, sweep the
+host's own ASN for it:
+
+```bash
+censys aggregate 'host.autonomous_system.asn = <asn> and host.services.port = "<port>"' \
+  host.operating_system.product -n 25
+```
+
+Read the result this way:
+
+- The port appears **only** on hosts that match your cluster → possible operator
+  artifact. Continue.
+- The port appears on unrelated hosts, and above all on a **different operating
+  system** (for example bare Windows/RDP hosts when your cluster is Linux) →
+  provider fleet service. Exclude it from the indicator set and from every
+  hunting query.
+
+A real case: port 17500 returned a TLS `unrecognized_name` fatal alert on all six
+hosts of a Linux C2 cluster. The banner suggested a deliberate SNI gate. A sweep
+of the ASN returned 19 hosts with the identical banner hash. 13 were bare
+Windows/RDP VPS with no relation to the cluster. Port 17500 was the provider's
+own service.
 
 **Dark infrastructure caveat:** CQL endpoint fields (e.g., Cobalt Strike
 watermark/public key) only match hosts with **currently active** listeners.

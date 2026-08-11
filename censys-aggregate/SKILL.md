@@ -88,7 +88,26 @@ Notes on shaping the bucket set:
 - `--count-by-level`/`-l` matters for nested fields where a host can have multiple services. Counting at the service level counts every matching service occurrence; counting at the host level counts each host once regardless of how many matching services it has. Pick the level that matches what the user actually means by "count" (e.g. "how many hosts run SSH" vs. "how many SSH services exist").
 - `--filter-by-query`/`-f` restricts aggregation to field values that also satisfy the query itself, rather than aggregating across every value present on the matching document set. Use this when the user wants the breakdown scoped strictly to the condition they searched for (e.g. protocol distribution only among the ports the query matched), not a broader profile of the matching hosts.
 - `--num-buckets`/`-n` is a hard cap on returned buckets, not a sample size — if the true cardinality of the field exceeds `-n`, only the top buckets by count are returned. Raise `-n` (up to 2000) if the user wants the long tail.
-- **Total population count** — to get the total number of matching hosts across all buckets: `censys aggregate "<query>" "<field>" -O json | jq '[.[].count] | add'`.
+- **Do not use a bucket sum as a total.** `jq '[.[].count] | add'` adds only the buckets the server returned. `-n` limits that number, and the default is 25. If the field has more distinct values than `-n`, the sum is lower than the true total. The command gives no warning.
+
+  Measured on one query (`host.services:` pinned to 3 ports and a vendor):
+
+  | `-n` | Sum of buckets | True total |
+  |---|---|---|
+  | 8 | 67 | 144 |
+  | 20 | 103 | 144 |
+  | 50 | 136 | 144 |
+  | 200 | 144 | 144 |
+
+  The sum at `-n 8` is 2.1 times too low. A report that used it stated 67 hosts. The correct number was 144.
+
+- **Rule: use `aggregate` for distribution. Use `search` for a total.** To count the hosts that match a query, page the query:
+
+  ```bash
+  censys search '<query>' --max-pages -1 --page-size 100 -O json | jq 'length'
+  ```
+
+- **To confirm a bucket sum is complete**, run the same aggregation twice with a large `-n` (for example 20 and 1000). If the sum increases, the smaller `-n` was too low. If both sums are equal, the field cardinality is below the smaller `-n` and the sum is the total.
 
 ## Error handling
 
@@ -101,7 +120,7 @@ Notes on shaping the bucket set:
 
 ## Caveats
 
-- Aggregation counts are computed server-side across the full matching document set — they are not derived from a sample of the first page of search results, so counts can differ from what you'd get by paginating `censys-search` and tallying with `jq` on a partial pull.
+- Each bucket `count` is computed server-side across the full matching document set. A bucket count is not a sample. But this applies to each bucket on its own, not to the **set** of buckets: `-n` still limits how many buckets come back. An accurate per-bucket count and an incomplete bucket list can appear in the same response. Do not read per-bucket accuracy as proof that the bucket list is complete.
 - Bucketing on a high-cardinality field (e.g. raw IP address) without a meaningful `-n` cap will silently truncate to the top values by count; confirm with the user whether they want the full distribution before running such an aggregation.
 - `--collection-id` requires a valid collection UUID that the authenticated identity has access to; an unrecognized or unauthorized UUID returns an error rather than an empty bucket set.
 - The default output (`short`) is meant for quick terminal review of `key`/`count` pairs; switch to `-O json` before piping into `jq` or other tooling.

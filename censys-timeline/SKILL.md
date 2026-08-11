@@ -236,6 +236,32 @@ When redirecting `censys history -O json` to a file and parsing it later:
   accompanying AS change before treating it as a strong reassignment signal.
 - Labels and event classifications are Censys-derived heuristics; treat them as
   triage aids, not ground truth, especially for attribution calls.
+- **A port can be absent from the whole event stream and still be open.** The
+  history stream does not always cover every port on a host. A port can produce
+  zero events across a full year — no success events and no failure events — while
+  `censys view` shows the same port scanned on the same day, with a complete
+  banner. Absence of events is not evidence that the service was down or
+  intermittent.
+
+  Confirm coverage before you make any claim about when a service started, stopped,
+  or flapped:
+
+  ```bash
+  # ports present in the history stream
+  jq -r '[.[].service_scanned.scan.port] | unique' history.json
+  # ports open right now
+  jq -r '[.[0].services[].port] | sort' view.json
+  ```
+
+  If a port is in the second list but not the first, the history stream does not
+  cover that port. State this as an instrumentation gap. Two consequences follow:
+
+  1. First-seen dates from history are a **lower bound**, and they are anchored
+     only to the ports the stream does cover.
+  2. Do not report the gap as intermittent service. A real case: ports 8085–8087
+     produced zero events across one year on five of six C2 hosts, while the
+     current snapshot showed all three ports scanned that morning. Reading the gap
+     as intermittent C2 would have been a false finding.
 
 ## Cross-references
 
