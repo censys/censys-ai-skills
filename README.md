@@ -79,3 +79,68 @@ independently for one-off tasks.
 
 - [censys-investigate](skills/censys-investigate/SKILL.md) — Investigation methodology, pivoting patterns, multi-step workflows
 - [censys-analyze](skills/censys-analyze/SKILL.md) — Post-retrieval analysis: jq recipes, SQLite, batch certs, cross-referencing
+
+## API usage estimates
+
+Each skill wraps one or more `censys` CLI subcommands. Every subcommand
+invocation is one Censys API call unless pagination is involved.
+
+### Per-skill breakdown
+
+| Skill | API calls per invocation | Notes |
+|---|---|---|
+| censys-view | 1 | Single host/cert/domain lookup. Batch via `--input-file` is still 1 call. |
+| censys-enrich | 1 | Single or batch IP enrichment. Credit-free. |
+| censys-aggregate | 1 | Single aggregation query, no pagination. |
+| censys-censeye | 1 per host | `--input-file` with N hosts = N calls. |
+| censys-search | 1 per page | Default is 1 page (100 results). `--max-pages -1` fetches all pages — unbounded. |
+| censys-timeline | 1–N | Depends on history depth and time window. Streaming mode pages automatically. |
+| censys-cql | 0 | Reference skill only — no CLI calls. |
+| censys-analyze | 0 | Post-processing skill. Operates on saved output from other skills. |
+| censys-investigate | 10–50+ | Orchestrates multiple skills. See breakdown below. |
+
+### Investigation workflow (censys-investigate)
+
+A full investigation runs through a baseline collection phase and then
+branches into decision trees based on findings. A typical session:
+
+| Phase | Commands | Calls |
+|---|---|---|
+| Baseline view | 1 `view` | 1 |
+| Host history | 1 `history` | 1 |
+| Domain chase | 1 `history` per domain | 1–5 |
+| Indicator triage | 1 `search` + 1 `aggregate` per indicator | 2–10 |
+| Pivot trees | 1 `search` + 1 `history` per hit | 5–30+ |
+
+A moderate investigation with 3 indicators and 2 hits each runs roughly
+**20–25 API calls**. Deep investigations with many pivots can exceed 150.
+
+### Observed usage (from real investigations)
+
+Based on analysis of 15 investigation sessions:
+
+| Metric | API calls |
+|---|---|
+| Median per session | 27 |
+| Average per session | 53 |
+| Lightest session | 5 |
+| Heaviest session | 185 |
+
+Call distribution by subcommand:
+
+| Subcommand | Share |
+|---|---|
+| `censys search` | 63% |
+| `censys view` | 32% |
+| `censys history` | 5% |
+| `censys censeye` | 1% |
+| `censys aggregate` | < 1% |
+
+### Controlling costs
+
+The biggest driver of API usage is `censys search` (two-thirds of all
+calls). To limit consumption:
+
+- Use `--max-pages` to cap search pagination (default is 1 page / 100 results)
+- Use `censys-aggregate` for counting before committing to full result pulls
+- Limit pivot depth in `censys-investigate` by narrowing indicator scope early
