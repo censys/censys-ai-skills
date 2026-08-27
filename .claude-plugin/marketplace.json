@@ -1,0 +1,22 @@
+{
+  "version": "1",
+  "description": "Censys CLI skills for Claude Code",
+  "plugins": [
+    {
+      "name": "censys",
+      "displayName": "Censys Skills",
+      "description": "Claude Code skills for threat hunting, asset discovery, and security research with the Censys CLI",
+      "author": {
+        "name": "Brandon Levene",
+        "email": "blevene@censys.com"
+      },
+      "source": {
+        "type": "github",
+        "repo": "Blevene/censys_skills",
+        "path": "."
+      },
+      "tags": ["security", "threat-hunting", "censys", "osint"],
+      "categories": ["Security"]
+    }
+  ]
+}
