@@ -1,8 +1,39 @@
-# Censys CLI Skills
+# Censys Skills Plugin
 
-[Claude Code](https://docs.anthropic.com/en/docs/claude-code) skills for
+A [Claude Code](https://docs.anthropic.com/en/docs/claude-code) plugin for
 working with [Censys](https://censys.io) internet intelligence data via the
-[Censys CLI](https://github.com/censys/censys-cli).
+[Censys CLI](https://github.com/Censys/cencli).
+
+## Install
+
+```bash
+/plugin install censys
+```
+
+### Prerequisites
+
+The plugin requires the [Censys CLI](https://github.com/Censys/cencli) (`censys`):
+
+```bash
+pip install censys
+# or
+brew install censys/homebrew-censys/censys
+```
+
+See the [Censys CLI README](https://github.com/Censys/cencli#readme) for full install options.
+
+### Authenticate
+
+```bash
+censys auth login          # OAuth (interactive)
+# or
+censys config auth add     # PAT (non-interactive)
+```
+
+### Additional config
+
+- For enrich: `censys config org-id`
+- For censeye / cert history: Threat Hunting module access required
 
 ## What is Censys?
 
@@ -13,7 +44,7 @@ hunting, exposure management, attack surface discovery, and infrastructure
 research. See [What is Censys?](https://censys.io/what-is-censys/) for a
 full overview.
 
-## How the skills work
+## Skills
 
 Each skill is a standalone markdown file (`SKILL.md`) with YAML frontmatter
 that Claude Code loads on demand based on trigger phrases in the user's
@@ -31,47 +62,20 @@ queries, `censys-timeline` for historical analysis, and `censys-cql` for
 field path lookups. The command wrappers are self-contained and can be used
 independently for one-off tasks.
 
-## Command skills
+### Command skills
 
-- [censys-search](censys-search/SKILL.md) — Search Censys data with CQL queries
-- [censys-view](censys-view/SKILL.md) — View hosts, certificates, and web properties
-- [censys-aggregate](censys-aggregate/SKILL.md) — Aggregate results by field (Report Builder)
-- [censys-enrich](censys-enrich/SKILL.md) — Credit-free IP enrichment for SOC triage
-- [censys-censeye](censys-censeye/SKILL.md) — Pivot analysis with rarity bounds
-- [censys-timeline](censys-timeline/SKILL.md) — Temporal analysis, change detection, attribution boundaries
+- [censys-search](skills/censys-search/SKILL.md) — Search Censys data with CQL queries
+- [censys-view](skills/censys-view/SKILL.md) — View hosts, certificates, and web properties
+- [censys-aggregate](skills/censys-aggregate/SKILL.md) — Aggregate results by field (Report Builder)
+- [censys-enrich](skills/censys-enrich/SKILL.md) — Credit-free IP enrichment for SOC triage
+- [censys-censeye](skills/censys-censeye/SKILL.md) — Pivot analysis with rarity bounds
+- [censys-timeline](skills/censys-timeline/SKILL.md) — Temporal analysis, change detection, attribution boundaries
 
-## Reference
+### Reference
 
-- [censys-cql](censys-cql/SKILL.md) — CQL syntax, field paths, operators, query cookbook
+- [censys-cql](skills/censys-cql/SKILL.md) — CQL syntax, field paths, operators, query cookbook
 
-## Methodology & Analysis
+### Methodology & Analysis
 
-- [censys-investigate](censys-investigate/SKILL.md) — Investigation methodology, pivoting patterns, multi-step workflows
-- [censys-analyze](censys-analyze/SKILL.md) — Post-retrieval analysis: jq recipes, SQLite, batch certs, cross-referencing
-
-## Prerequisites
-
-All skills require the [Censys CLI](https://github.com/censys/censys-cli) (`censys`).
-
-### Install
-
-```bash
-pip install censys
-# or
-brew install censys/homebrew-censys/censys
-```
-
-See the [Censys CLI README](https://github.com/censys/censys-cli#readme) for full install options.
-
-### Authenticate
-
-```bash
-censys auth login          # OAuth (interactive)
-# or
-censys config auth add     # PAT (non-interactive)
-```
-
-### Additional config
-
-- For enrich: `censys config org-id`
-- For censeye / cert history: Threat Hunting module access required
+- [censys-investigate](skills/censys-investigate/SKILL.md) — Investigation methodology, pivoting patterns, multi-step workflows
+- [censys-analyze](skills/censys-analyze/SKILL.md) — Post-retrieval analysis: jq recipes, SQLite, batch certs, cross-referencing
