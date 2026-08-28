@@ -37,7 +37,7 @@ jobs:
       - name: Shellcheck
         run: |
           sudo apt-get install -y shellcheck
-          shellcheck scripts/*.sh hooks/*.sh tests/*.sh
+          shellcheck -x scripts/*.sh hooks/*.sh tests/*.sh
 
       - name: Verify cli-globals.md copies are identical
         run: |
