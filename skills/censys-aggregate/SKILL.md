@@ -44,17 +44,9 @@ Unlike most other `censys` subcommands, `aggregate` defaults to `-O short` rathe
 
 ### Global CLI flags
 
-These apply to every `censys` subcommand, not just `aggregate`:
-
-- `--output-format`, `-O` — output format (`json`, `yaml`, `tree`, `short`; `template` not supported here)
-- `--quiet`, `-q` — suppress non-essential output
-- `--debug` — verbose diagnostic logging
-- `--no-color` — disable ANSI color in terminal output
-- `--no-spinner` — disable progress spinner (useful when piping or in CI)
-- `--timeout-http` — override the HTTP client timeout
-- `--org-id`, `-o` — explicitly set the organization ID for the request
-
-**PAT users:** if you authenticated with a Personal Access Token (`censys config auth add`) rather than OAuth (`censys auth login`), the CLI cannot always infer which organization to scope the request to. If an aggregation returns an org-related auth error or an empty bucket set you didn't expect, pass `--org-id <org-id>` explicitly (or set it once via `censys config org-id`).
+See `references/cli-globals.md` for the full global flags reference (output
+format, diagnostics, org-id, and PAT vs OAuth notes). Note: `aggregate` does
+not support `-S` (streaming) or `-O template`.
 
 ## Common patterns
 

@@ -57,17 +57,11 @@ Supports `--output-format`/`-O` with `short` (default), `json`, `yaml`, or `tree
 **`template` is not supported** for this subcommand and will fail with a non-zero
 exit code — see Error handling.
 
-### Global CLI flags (apply to all `censys` subcommands)
+### Global CLI flags
 
-| Flag | Purpose |
-|---|---|
-| `--output-format`, `-O <fmt>` | `short` (default), `json`, `yaml`, or `tree` for censeye |
-| `--quiet`, `-q` | Suppress non-essential output |
-| `--debug` | Verbose diagnostic logging |
-| `--no-color` | Disable ANSI color in terminal output |
-| `--no-spinner` | Disable the progress spinner (useful when piping/redirecting) |
-| `--timeout-http <duration>` | Override the HTTP client timeout |
-| `--org-id`, `-o <id>` | Target a specific organization ID |
+See `references/cli-globals.md` for the full global flags reference (output
+format, diagnostics, org-id, and PAT vs OAuth notes). Note: `censeye` does
+not support `-S` (streaming) or `-O template`. Default output is `short`.
 
 ## Common patterns
 

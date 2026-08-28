@@ -55,18 +55,11 @@ censys history <asset> [flags]
 | `--end` + `--duration` | end − duration → end |
 | `--start` + `--end` | exact window; `--duration` ignored if also passed |
 
-### Global CLI flags (apply to all `censys` subcommands)
+### Global CLI flags
 
-| Flag | Purpose |
-|---|---|
-| `--output-format`, `-O <fmt>` | `json` (default), `yaml`, `tree`. **`short` and `template` are not supported for `history`** (exit code 2). |
-| `--streaming`, `-S` | Emit NDJSON as events arrive rather than buffering the full array |
-| `--quiet`, `-q` | Suppress non-essential output |
-| `--debug` | Verbose diagnostic logging |
-| `--no-color` | Disable ANSI color in terminal output |
-| `--no-spinner` | Disable the progress spinner (useful when piping/redirecting) |
-| `--timeout-http <duration>` | Override the HTTP client timeout |
-| `--org-id`, `-o <id>` | Target a specific organization ID |
+See `references/cli-globals.md` for the full global flags reference (output
+format, streaming, diagnostics, org-id, and PAT vs OAuth notes). Note:
+`history` does not support `-O short` or `-O template` (exit code 2).
 
 ## Event model
 

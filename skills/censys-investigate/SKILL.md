@@ -39,6 +39,11 @@ on this IP," "profile this host," or "show me this host's services" — use
 API call count (typically 20–50+ for a standard investigation, 100+ for deep
 pivoting), and whether they want the full methodology or a lighter pass.
 
+**Precedence:** If guidance in this skill conflicts with a command skill
+(censys-search, censys-view, censys-aggregate, etc.), the command skill wins.
+Command skills own the facts about their own CLI behavior; this skill owns
+the investigation methodology.
+
 ## Prerequisites
 
 Requires the [Censys CLI](https://github.com/Censys/cencli) installed
@@ -210,282 +215,22 @@ Rules:
 
 ## Decision trees
 
-These operate on the baseline's outputs. The analyst picks the relevant
-tree(s) for what the baseline revealed — multiple trees may apply, and trees
-feed back into each other as new candidates surface. Every path terminates in
-documentation; nothing is silently dropped.
+The baseline's outputs determine which decision tree(s) to enter. Multiple
+trees may apply, and trees feed back into each other as new candidates surface.
 
-**Tree 1: "I have unique artifacts"**
-
-Entry: Indicator triage found unique body/banner/cert/build-string
-indicators.
-
-```
-Run censys search for each unique indicator (excluding target IP)
-  ├─ Hits found → for each hit:
-  │   ├─ Run censys history on the hit IP (save to data/)
-  │   ├─ Compare: timeline overlap? shared signals? same stack?
-  │   │   ├─ Strong overlap → linked infrastructure. Add indicators, re-enter Tree 1
-  │   │   └─ Weak/no overlap → coincidence, document why
-  │   └─ Check for ownership boundary before shared indicator appeared
-  └─ No hits → distinguish two cases:
-      ├─ Field is indexed AND target service is live → truly unique (this IS a finding)
-      └─ Target service is dark/offline → "not currently visible," not necessarily unique
-          └─ Verify field is indexed: run a wildcard query (field:*). If it returns
-             results for OTHER hosts but not the target, the target's services are dark.
-             Document as "potentially unique — unverifiable while dark" and flag for
-             re-check when infrastructure reactivates.
-```
-
-**Tree 2: "Everything is common/default"**
-
-Entry: All indicators broad or noise.
-
-```
-Build behavioral compound queries (2-3 broad indicators combined)
-  ├─ Start tight: software + protocol + ASN + port pattern
-  │   ├─ < 25 hits → viable pivot set, deep-dive each (Tree 4)
-  │   ├─ 25-200 hits → too broad, add constraint or try Tree 3
-  │   └─ 200+ hits → noise, different combination
-  └─ Try body content search (Tree 3) in parallel
-```
-
-**Tree 3: "Body content string search"**
-
-Entry: From Tree 1 (supplementary) or Tree 2 (primary). Target has HTTP
-services.
-
-```
-Extract distinctive strings from HTTP response bodies:
-  ├─ Build artifact filenames (Vite/Webpack content hashes)
-  ├─ Application-specific titles, meta tags, inline config
-  ├─ Custom error messages or API response patterns
-Search: host.services.endpoints.http.body:"<string>"
-  ├─ Hits → evaluate same as Tree 1
-  └─ No hits → unique, document
-```
-
-**Tree 4: "Deep-dive assessment"**
-
-Entry: Any pivot returned candidate matches.
-
-```
-For each candidate:
-  ├─ Run censys history (host history + cert follow, save to data/)
-  ├─ Check ownership timeline:
-  │   ├─ Change detected → shared indicator before or after boundary?
-  │   │   ├─ Before → previous tenant. Exclude.
-  │   │   └─ After → possible same operator. Continue.
-  │   └─ No change → single operator, continue.
-  ├─ Compare against target:
-  │   ├─ Shared signals? Timeline overlap? Port pattern? Same ASN? Same apps?
-  ├─ Assess confidence:
-  │   ├─ Multiple shared indicators + timeline overlap → HIGH
-  │   ├─ One shared indicator + behavioral similarity → MODERATE
-  │   ├─ Only behavioral match → LOW (likely coincidence)
-  │   └─ Different apps, different timeline → UNRELATED
-  └─ If HIGH/MODERATE: add hit's indicators, re-enter Tree 1
-```
-
-**Tree 5: "Domain and DNS chase"**
-
-Entry: Baseline found domains with previous IPs, or pivots revealed new
-domains.
-
-```
-For each previous IP:
-  ├─ Run censys history on the IP (save to data/)
-  ├─ Shared hosting/parking → dead end, document
-  ├─ Similar service profile → enter Tree 4
-  └─ Unrelated → document and move on
-For each new domain:
-  ├─ Run censys history on the domain (save to data/)
-  ├─ Other IPs → re-enter this tree
-  └─ Note registration patterns
-```
-
-**Tree 6: "No linked infrastructure found"**
-
-Entry: All paths exhausted.
-
-```
-Document explicitly:
-  ├─ What was searched and ruled out
-  ├─ Likely explanation:
-  │   ├─ Unique tooling per node
-  │   ├─ Single host only
-  │   └─ Outside Censys visibility
-  ├─ External sources that could extend:
-  │   ├─ Domain registration / WHOIS
-  │   ├─ Network flow data
-  │   ├─ Threat intel feeds
-  │   ├─ Application-layer analysis
-  │   └─ Payment / billing records
-  └─ Open questions for re-investigation
-```
+For the full decision tree flowcharts (Trees 1–6), see
+[references/decision-trees.md](references/decision-trees.md).
 
 ## Findings template
 
-```markdown
-# <IP> — Investigation
-
-**Started:** YYYY-MM-DD
-**Updated:** YYYY-MM-DD
-**Status:** In Progress | Complete | Exhausted
-**Constraint:** [e.g., Censys data only / passive recon only]
-
----
-
-## Host Profile
-
-| Attribute | Value |
-|---|---|
-| IP | |
-| Location | |
-| ASN | |
-| OS | |
-| Domain(s) | |
-| Active Services | |
-| Censys Reputation | |
-| Earliest Observed | |
-| Ownership Changes | |
-
----
-
-## Current Services
-
-| Port | Proto | Description | First Seen | Notes |
-|---|---|---|---|---|
-
-### Decommissioned Services
-
-| Port | Proto | Description | Active Window | Notes |
-|---|---|---|---|---|
-
----
-
-## Infrastructure Timeline
-
-| Date | Event |
-|---|---|
-
----
-
-## Key Observations
-
-[Analyst notes: unusual stack, suspicious services, behavioral patterns]
-
----
-
-## DNS History
-
-[Per-domain resolution history, previous IPs, registrar info]
-
----
-
-## TLS Certificate History
-
-| Cert SHA256 | Subject CN | Port | Active Window |
-|---|---|---|---|
-
----
-
-## Indicator Triage
-
-### Unique
-
-| Indicator Type | Value | CQL Query | Hits | Result |
-|---|---|---|---|---|
-
-### Broad / Noise
-
-| Indicator Type | Value | Why Noise |
-|---|---|---|
-
----
-
-## Pivot Results
-
-[Decision tree outcomes — what was searched, what was found, what was ruled out.
-Organized by tree traversal path.]
-
----
-
-## Assessment
-
-[Synthesis: linked infrastructure found? Operator characterization? Confidence level?]
-
----
-
-## Open Questions
-
-- [ ] ...
-
----
-
-## Data Files
-
-| File | Description |
-|---|---|
-
----
-
-## Progress Log
-
-| Date | Action | Result |
-|---|---|---|
-```
+Initialize `analysis/findings.md` from the template in
+[references/findings-template.md](references/findings-template.md) at the start
+of every investigation.
 
 ## Pivoting patterns
 
-Condensed appendix of the tactical pivot techniques — the "how to execute"
-for each decision tree's search steps.
-
-1. **Certificate pivot** — shared leaf cert = shared operator (or CDN
-   default). Extract fingerprint from `censys view` output, search
-   `host.services.tls.certificates.leaf_fp_sha_256`.
-2. **Banner pivot** — unique/custom banner string. Search
-   `host.services.banner:`.
-3. **SSH host key pivot** — nearly as strong as cert. Search
-   `host.services.ssh.server_host_key.fingerprint_sha256`.
-4. **JARM pivot** — TLS stack fingerprint, useful when certs differ but
-   backend is same. Search `host.services.jarm`.
-5. **Body content pivot** — distinctive strings inside HTTP response bodies.
-   Search `host.services.endpoints.http.body:"<string>"`. Especially
-   effective for build artifact hashes (Vite/Webpack content hashes).
-6. **Cross-provider cluster detection** — same signal across 3+ unrelated
-   ASNs on VPS providers = likely single operator. Aggregate by ASN to check
-   distribution.
-7. **C2 framework pivot** — for hosts running Cobalt Strike, Sliver, or other
-   C2 frameworks with extracted configs: search the framework-specific endpoint
-   fields (`host.services.endpoints.cobalt_strike.x64.*`, etc.). Population-check
-   watermarks/license IDs first — shared cracked licenses produce false clusters
-   (e.g., CS watermark `987654321` spans 77+ unrelated hosts). The framework's
-   *public key* and *beacon config URIs* are more operator-specific than the
-   watermark. Note: endpoint fields only index currently-active listeners — dark
-   infrastructure won't appear.
-
-Always aggregate (`censys aggregate`) before pulling full results to check
-population size and distribution.
-
-### Bulk verification
-
-When an investigation surfaces a large candidate cluster (10+ hosts), verify
-membership efficiently:
-
-1. **Batch history pulls.** Budget time generously for bulk history pulls.
-   Even with streaming, a 90-day pull on an active host takes 60–180 seconds,
-   so 50 hosts sequentially is measured in hours, not minutes. Save every
-   result to `data/`.
-2. **Multi-signal confirmation.** Require at least two independent indicators
-   (e.g., SSH key + CS watermark, or SSH key + port rotation pattern) before
-   confirming cluster membership. A single shared indicator can be coincidence.
-3. **Track verification rate.** Report confirmed/total (e.g., "50/50 verified")
-   in the findings. A 100% rate on a large candidate set is itself a signal — it
-   suggests the cluster definition is correct and the operator provisions from
-   a template.
-
-Reference `censys-cql` for field paths, `censys-search` for CLI execution.
+Tactical pivot techniques and bulk verification procedures are in
+[references/pivot-patterns.md](references/pivot-patterns.md).
 
 ## Cross-references
 

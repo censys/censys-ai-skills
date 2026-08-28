@@ -89,58 +89,11 @@ running a wildcard query (`field:*`) before interpreting 0 results as "unique."
 - **Response/classification**: `webproperty.endpoints.http.status_code`, `webproperty.labels`
 - **Software**: `webproperty.software.vendor`, `webproperty.software.product`
 
-## Query cookbook
-
-```bash
-# 1. SSH hosts on the standard port
-censys search "host.services: (protocol=SSH and port: 22)"
-
-# 2. Hosts serving a specific TLS leaf certificate by SHA-256
-censys search "host.services.tls.certificates.leaf_fp_sha_256: <sha256>"
-
-# 3. Hosts within a CIDR range
-censys search "host.ip: '198.51.100.0/24'"
-
-# 4. Hosts on a specific autonomous system
-censys search "host.autonomous_system.asn: 13335"
-
-# 5. Hosts running nginx (use software field — header queries return 422; see Gotcha #3)
-censys search "host.services.software.product: nginx"
-
-# 6. Certificates issued by Let's Encrypt (quoted apostrophe)
-censys search "cert.parsed.issuer.organization: 'Let'\''s Encrypt'"
-
-# 7. Non-standard-port SSH hosts in Germany (negation + compound grouping)
-censys search "host.services: (protocol=SSH and not port: 22) and host.location.country: Germany"
-
-# 8. Hosts matching a JARM TLS fingerprint
-censys search "host.services.jarm: <jarm_hash>"
-
-# 9. Hosts labeled as remote-access exposed
-censys search 'labels="remote-access"'
-
-# 10. Web properties running Apache
-censys search "webproperty.software.product: Apache"
-
-# 11. Hosts with a specific HTTP body hash (e.g., a custom web app)
-censys search 'host.services.endpoints.http.body_hash_sha256="<sha256>"'
-
-# 12. Hosts with a specific string in the HTTP response body
-censys search 'host.services.endpoints.http.body:"index-Bv1WZ4hk.js"'
-
-# 13. Hosts with a specific HTML title
-censys search 'host.services.endpoints.http.html_title="Connection Manager"'
-
-# 14. Hosts running Cobalt Strike with a specific watermark
-censys search 'host.services.endpoints.cobalt_strike.x64.watermark=987654321'
-
-# 15. Hosts running Cobalt Strike with a specific public key
-censys search 'host.services.endpoints.cobalt_strike.x64.public_key="<base64_key>"'
-```
+For copy-paste query examples, see [references/cookbook.md](references/cookbook.md).
 
 ## Query construction patterns
 
-The cookbook above gives copy-paste examples. This section teaches how to _think about_ building queries — especially when combining conditions across nested fields.
+The [cookbook](references/cookbook.md) gives copy-paste examples. This section teaches how to _think about_ building queries — especially when combining conditions across nested fields.
 
 ### Compound service matching
 
@@ -207,7 +160,7 @@ CQL search fields do NOT always match the JSON paths in `censys view` / `censys 
 
 - Values containing spaces, colons, slashes, hyphens, or other special characters must be wrapped in single quotes or double quotes: `'value with spaces'`, `"remote-access"`. Hyphens are especially treacherous — `labels: remote-access` fails because the parser reads `-access` as negation.
 - CQL keywords (`and`, `or`, `not`) appearing *as literal values* (not as operators) must be quoted, or the parser will treat them as boolean operators.
-- Single quotes inside a quoted value are escaped by doubling them in CQL itself (`'Let''s Encrypt'`); when that same string is passed through a shell command line, the shell's own quoting also needs escaping, which produces the doubled pattern `'\''` seen in example 6 above — one layer for the shell, one for CQL.
+- Single quotes inside a quoted value are escaped by doubling them in CQL itself (`'Let''s Encrypt'`); when that same string is passed through a shell command line, the shell's own quoting also needs escaping, which produces the doubled pattern `'\''` seen in [cookbook](references/cookbook.md) example 6 — one layer for the shell, one for CQL.
 - When in doubt, quote the value. Quoting an already-safe token (e.g., a bare number or single word) is harmless; failing to quote a token that needs it causes a parse error or a silently wrong match.
 
 ## Gotchas
@@ -236,23 +189,7 @@ CQL search fields do NOT always match the JSON paths in `censys view` / `censys 
    nothing; use `software.product: "AnyDesk"` (`:` is case-insensitive) or
    `software.product="anydesk"` (exact lowercase).
 
-## Known noise
-
-Indicators that look distinctive but return too many unrelated matches for
-attribution (from investigation data). Check this list during indicator triage before building pivot queries.
-
-| Indicator | Why it's noise |
-|---|---|
-| `WIN-*` hostname in cert CN on Hetzner (AS24940) | Default Windows VPS hostname. Hundreds of hosts share each variant. Not operator-specific. |
-| Default Create-React-App favicon hash | Matches any CRA-scaffolded app that hasn't customized the favicon. |
-| Express.js 404 body hash (`Cannot GET /`) | Default Express error page. Extremely common across all Express deployments. |
-| Common JARM fingerprints for Node.js/Express | Too many matches for attribution when used as the sole pivot. Combine with other indicators. |
-| Font Awesome CDN SRI hashes | Shared CDN resource. Referenced by millions of pages. |
-| Generic inline CSS (`width: 100vw; height: 100vh; display: flex`) | Common layout pattern. Produces false positives from firewall/appliance UIs. |
-| Cobalt Strike watermark `987654321` | Cracked/leaked CS license. 77+ hosts globally (predominantly Chinese cloud: Tencent, Alibaba, Huawei). Shared across unrelated operators — not attribution-grade. |
-| Cobalt Strike empty-404 banner hash | Default CS HTTP listener response: `Server: Apache`, 0-byte body, 404 status. Matches any default-config CS listener globally. |
-
-This section should grow as investigations reveal new noise patterns.
+For known-noise indicators to exclude during triage, see [references/known-noise.md](references/known-noise.md).
 
 ## Cross-references
 

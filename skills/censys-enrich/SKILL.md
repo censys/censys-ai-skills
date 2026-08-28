@@ -69,15 +69,11 @@ enrich's own limit, but useful if the user is also planning follow-up `view`/
 | `--output-format`, `-O` | `json` (default), `yaml`, `tree`, `short` |
 | `--streaming`, `-S` | Emit NDJSON (one JSON object per line) instead of a single JSON array — use for bulk enrichment so results stream as they resolve |
 
-### Other global CLI flags
+### Global CLI flags
 
-These apply to `enrich` as they do to any `censys` subcommand:
-
-- `--quiet`, `-q` — suppress non-essential output
-- `--debug` — verbose diagnostic logging
-- `--no-color` — disable ANSI color in terminal output
-- `--no-spinner` — disable progress spinner (useful when piping/redirecting)
-- `--timeout-http <duration>` — override the HTTP client timeout
+See `references/cli-globals.md` for the full global flags reference
+(diagnostics, org-id, and PAT vs OAuth notes). Note: `enrich` under OAuth
+does not accept `--org-id` — the org is fixed at login time.
 
 ## Common patterns
 

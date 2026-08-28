@@ -23,6 +23,11 @@ Do **not** use this to generate the underlying data — that's `censys-search`,
 post-retrieval: it assumes CLI output is already sitting in a file (or about to be
 piped to one) and focuses on what to do with it next.
 
+**Precedence:** If guidance in this skill conflicts with a command skill
+(censys-search, censys-view, censys-aggregate, etc.), the command skill wins.
+Command skills own the facts about their own CLI behavior; this skill owns
+the analysis methodology.
+
 ## Core principle
 
 Censys API calls cost credits, count against rate limits, and take time. **Save

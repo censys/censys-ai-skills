@@ -40,18 +40,8 @@ Pass `--output-format`/`-O` with one of: `json` (default), `yaml`, `tree`, `shor
 
 ### Global CLI flags
 
-These apply to every `censys` subcommand, not just `search`:
-
-- `--output-format`, `-O` — output format (`json`, `yaml`, `tree`, `short`, `template`)
-- `--streaming`, `-S` — emit NDJSON instead of a JSON array
-- `--quiet`, `-q` — suppress non-essential output
-- `--debug` — verbose diagnostic logging
-- `--no-color` — disable ANSI color in terminal output
-- `--no-spinner` — disable progress spinner (useful when piping or in CI)
-- `--timeout-http` — override the HTTP client timeout
-- `--org-id`, `-o` — explicitly set the organization ID for the request
-
-**PAT users:** if you authenticated with a Personal Access Token (`censys config auth add`) rather than OAuth (`censys auth login`), the CLI cannot always infer which organization to scope the request to. If a search returns an org-related auth error or empty results you didn't expect, pass `--org-id <org-id>` explicitly (or set it once via `censys config org-id`).
+See `references/cli-globals.md` for the full global flags reference (output
+format, streaming, diagnostics, org-id, and PAT vs OAuth notes).
 
 ## Common patterns
 

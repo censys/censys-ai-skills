@@ -51,18 +51,10 @@ Defanged IPs are accepted and normalized automatically, e.g. `8[.]8[.]8[.]8` →
 Multiple assets can be passed comma-separated in a single invocation
 (`censys view 8.8.8.8,9.9.9.9`), via `--input-file`, or piped through stdin.
 
-### Global CLI flags (apply to all `censys` subcommands)
+### Global CLI flags
 
-| Flag | Purpose |
-|---|---|
-| `--output-format`, `-O <fmt>` | `json` (default), `yaml`, `tree`, `short`, or `template` |
-| `--streaming`, `-S` | Stream results as they arrive rather than buffering |
-| `--quiet`, `-q` | Suppress non-essential output |
-| `--debug` | Verbose diagnostic logging |
-| `--no-color` | Disable ANSI color in terminal output |
-| `--no-spinner` | Disable the progress spinner (useful when piping/redirecting) |
-| `--timeout-http <duration>` | Override the HTTP client timeout |
-| `--org-id`, `-o <id>` | Target a specific organization ID |
+See `references/cli-globals.md` for the full global flags reference (output
+format, streaming, diagnostics, org-id, and PAT vs OAuth notes).
 
 ## Common patterns
 
