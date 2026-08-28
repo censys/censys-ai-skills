@@ -35,13 +35,13 @@ saved file before reaching for the CLI again.
 ## Save-and-reuse pattern
 
 ```bash
-censys search "host.services.protocol=SSH" --max-pages 5 -O json > /tmp/ssh_hosts.json
-censys view 8.8.8.8 -O json > /tmp/host_detail.json
-censys enrich --input-file ips.txt -O json > /tmp/enriched.json
-censys history 1.2.3.4 --duration 30d -O json > /tmp/timeline.json
+censys search "host.services.protocol=SSH" --max-pages 5 -O json > data/ssh_hosts.json
+censys view 8.8.8.8 -O json > data/host_detail.json
+censys enrich --input-file ips.txt -O json > data/enriched.json
+censys history 1.2.3.4 --duration 30d -O json > data/timeline.json
 
 # NDJSON streaming for large result sets (one JSON object per line)
-censys search "host.services.port=443" --max-pages -1 --streaming > /tmp/https_hosts.ndjson
+censys search "host.services.port=443" --max-pages -1 --streaming > data/https_hosts.ndjson
 ```
 
 Prefer `--streaming` with NDJSON output for anything over a few thousand results —
@@ -52,34 +52,34 @@ process a line at a time with `jq -c`.
 
 CQL search fields and JSON output paths differ for some signals (e.g., cert fingerprint is `host.services.tls.certificates.leaf_fp_sha_256` in CQL but `.tls.fingerprint_sha256` in JSON output). See `censys-cql` for the full mapping table.
 
-Validate first: `jq '.' /tmp/ssh_hosts.json > /dev/null` — a syntax error here means
+Validate first: `jq '.' data/ssh_hosts.json > /dev/null` — a syntax error here means
 malformed/truncated JSON, not a bad filter.
 
 ```bash
 # 1. Extract all IPs from search results
-jq -r '.[].host.ip' /tmp/ssh_hosts.json
+jq -r '.[].host.ip' data/ssh_hosts.json
 
 # 2. Filter hosts by country
-jq '[.[] | select(.host.location.country_code == "US")]' /tmp/ssh_hosts.json
+jq '[.[] | select(.host.location.country_code == "US")]' data/ssh_hosts.json
 
 # 3. Extract unique cert fingerprints across all services
 jq -r '[.[].host.services[]? | .tls?.fingerprint_sha256? // empty] | unique | .[]' \
-  /tmp/ssh_hosts.json
+  data/ssh_hosts.json
 
 # 4. Count hosts per country
 jq 'group_by(.host.location.country_code) |
     map({country: .[0].host.location.country_code, count: length}) |
-    sort_by(-.count)' /tmp/ssh_hosts.json
+    sort_by(-.count)' data/ssh_hosts.json
 
 # 5. Extract a services summary for one host
-jq '.[0].services | map({port, protocol, transport_protocol})' /tmp/host_detail.json
+jq '.[0].services | map({port, protocol, transport_protocol})' data/host_detail.json
 
-# 6. Filter enrichment results by reputation
-jq '[.[] | select(.reputation?.malicious == true)]' /tmp/enriched.json
+# 6. Filter enrichment results by reputation score
+jq '[.[] | select(.reputation?.score_level != "benign")]' data/enriched.json
 
 # 7. NDJSON processing — one object per line, no top-level array
-cat /tmp/https_hosts.ndjson | jq -r '.host.ip' | sort -u
-cat /tmp/https_hosts.ndjson | jq -c 'select(.host.location.country_code == "DE")'
+cat data/https_hosts.ndjson | jq -r '.host.ip' | sort -u
+cat data/https_hosts.ndjson | jq -c 'select(.host.location.country_code == "DE")'
 ```
 
 ## SQLite loading
@@ -89,14 +89,18 @@ filter, load the results into SQLite and use its JSON functions (SQLite 3.38+
 required for `json_extract`/`json_each`).
 
 ```bash
-# Create a table and load search results, one JSON blob per row
-sqlite3 /tmp/censys.db "CREATE TABLE IF NOT EXISTS hosts (data JSON);"
-jq -c '.[]' /tmp/ssh_hosts.json | while IFS= read -r line; do
-  sqlite3 /tmp/censys.db "INSERT INTO hosts VALUES (json('$(echo "$line" | sed "s/'/''/g")'));"
-done
+# Create table and bulk-load search results in one transaction
+sqlite3 data/censys.db "CREATE TABLE IF NOT EXISTS hosts (data JSON);"
+jq -c '.[]' data/ssh_hosts.json | {
+  echo "BEGIN TRANSACTION;"
+  while IFS= read -r line; do
+    printf "INSERT INTO hosts VALUES (json('%s'));\n" "$(printf '%s' "$line" | sed "s/'/''/g")"
+  done
+  echo "COMMIT;"
+} | sqlite3 data/censys.db
 
 # Count hosts per ASN
-sqlite3 /tmp/censys.db <<'SQL'
+sqlite3 data/censys.db <<'SQL'
 SELECT json_extract(data, '$.host.autonomous_system.asn') AS asn,
        json_extract(data, '$.host.autonomous_system.name') AS as_name,
        COUNT(*) AS host_count
@@ -107,7 +111,7 @@ LIMIT 20;
 SQL
 
 # Find hosts with a specific port open (unnest the services array with json_each)
-sqlite3 /tmp/censys.db <<'SQL'
+sqlite3 data/censys.db <<'SQL'
 SELECT json_extract(data, '$.host.ip') AS ip
 FROM hosts, json_each(json_extract(data, '$.host.services')) AS svc
 WHERE json_extract(svc.value, '$.port') = 8443;
@@ -124,22 +128,22 @@ loaded table as many times as needed.
 ```bash
 # Extract all unique cert fingerprints from search results
 jq -r '[.[].host.services[]? | .tls?.fingerprint_sha256? // empty] | unique | .[]' \
-  /tmp/ssh_hosts.json > /tmp/cert_fps.txt
+  data/ssh_hosts.json > data/cert_fps.txt
 
 # Batch view certs — chunk into groups of ~50 to keep each invocation manageable
-split -l 50 /tmp/cert_fps.txt /tmp/cert_chunk_
-for chunk in /tmp/cert_chunk_*; do
+split -l 50 data/cert_fps.txt data/cert_chunk_
+for chunk in data/cert_chunk_*; do
   CERTS=$(paste -sd, "$chunk")
-  censys view "$CERTS" -O json >> /tmp/all_certs.json
+  censys view "$CERTS" -O json >> data/all_certs.json
 done
 
 # Certs expiring soon
 jq '[.[] | select(.parsed.validity_period.not_after < "2025-09-01T00:00:00Z") |
      {cn: .parsed.subject.common_name[0], expires: .parsed.validity_period.not_after,
-      fp: .fingerprint_sha256}]' /tmp/all_certs.json
+      fp: .fingerprint_sha256}]' data/all_certs.json
 
 # Extract all SANs across certs
-jq -r '[.[].parsed.extensions.subject_alt_name.dns_names[]?] | unique | .[]' /tmp/all_certs.json
+jq -r '[.[].parsed.extensions.subject_alt_name.dns_names[]?] | unique | .[]' data/all_certs.json
 ```
 
 Always chunk batch cert lookups (~50 per call) — a single call with hundreds of
@@ -151,12 +155,12 @@ to retry piecemeal on partial failure.
 ```bash
 # IPs present in search results AND flagged with bad reputation in enrichment
 comm -12 \
-  <(jq -r '.[].host.ip' /tmp/ssh_hosts.json | sort) \
-  <(jq -r '[.[] | select(.reputation?.malicious == true)] | .[].ip' /tmp/enriched.json | sort)
+  <(jq -r '.[].host.ip' data/ssh_hosts.json | sort) \
+  <(jq -r '[.[] | select(.reputation?.score_level != "benign")] | .[].ip' data/enriched.json | sort)
 
 # Correlate censeye pivots with a fresh targeted search
-censys censeye 1.2.3.4 -O json > /tmp/pivots.json
-jq -r '.[] | select(.interesting == true) | .query' /tmp/pivots.json | while read -r query; do
+censys censeye 1.2.3.4 -O json > data/pivots.json
+jq -r '.[] | select(.interesting == true) | .query' data/pivots.json | while read -r query; do
   echo "=== Pivot: $query ==="
   censys search "$query" -n 5 -O json | jq '.[].host.ip'
 done
@@ -174,7 +178,7 @@ censys search --fields host.ip,host.location.country "host.services.port=443" -O
 
 # Trim an already-saved record down to just what's needed downstream
 censys view 8.8.8.8 -O json | \
-  jq '.[0] | {ip, services: [.services[] | {port, protocol}], location}' > /tmp/trimmed.json
+  jq '.[0] | {ip, services: [.services[] | {port, protocol}], location}' > data/trimmed.json
 ```
 
 Prefer `--fields` at query time when the full record isn't needed — it reduces

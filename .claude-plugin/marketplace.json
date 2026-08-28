@@ -1,22 +1,22 @@
 {
-  "version": "1",
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "censys",
   "description": "Censys CLI skills for Claude Code",
+  "owner": {
+    "name": "Censys",
+    "email": "support@censys.io"
+  },
   "plugins": [
     {
       "name": "censys",
-      "displayName": "Censys Skills",
       "description": "Claude Code skills for threat hunting, asset discovery, and security research with the Censys CLI",
       "author": {
         "name": "Brandon Levene",
         "email": "blevene@censys.com"
       },
-      "source": {
-        "type": "github",
-        "repo": "Blevene/censys_skills",
-        "path": "."
-      },
-      "tags": ["security", "threat-hunting", "censys", "osint"],
-      "categories": ["Security"]
+      "category": "security",
+      "source": ".",
+      "homepage": "https://github.com/Censys/cencli"
     }
   ]
 }

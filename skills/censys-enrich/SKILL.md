@@ -45,9 +45,13 @@ Defanged IPs are accepted and normalized automatically, e.g. `104[.]168[.]107[.]
 ### Requirements
 
 - **Censys Core plan.** `enrich` is not available on lower-tier plans.
-- **Organization ID is always required** for `enrich`, unlike some other
-  subcommands where it can be inferred. Set it once with
-  `censys config org-id`, or pass `--org-id`/`-o <id>` on each call.
+- **Organization ID handling depends on auth method:**
+  - **PAT (Personal Access Token):** Org ID is required. Set it once with
+    `censys config org-id`, or pass `--org-id`/`-o <id>` on each call.
+  - **OAuth (`censys auth login`):** The organization is fixed at login
+    time. `--org-id` is not accepted and will error. If you need to target
+    a different org, re-run `censys auth login` and select the org on the
+    consent screen.
 
 ### Credits
 
@@ -102,8 +106,8 @@ censys enrich 8.8.8.8,9.9.9.9 --streaming
 - **GreyNoise** — flags the IP as a known scanner, a benign/verified service
   (e.g. a CDN or search engine crawler), or part of mass internet-wide scanning
   activity. A GreyNoise "benign" tag is a strong signal to deprioritize.
-- **Reputation** — a score plus a classification (e.g. malicious/suspicious/
-  neutral/good). Treat as one signal among several, not a verdict on its own.
+- **Reputation** — contains `model_version` and `score_level` (e.g.
+  `benign`). Treat as one signal among several, not a verdict on its own.
 - **Network/privacy classification** — residential, datacenter, VPN, proxy, or
   Tor. Datacenter + no legitimate hosting context is more suspicious than
   residential; VPN/proxy/Tor often explain otherwise-odd geolocation or
@@ -139,7 +143,7 @@ only for the IPs that warrant a deeper look.
 |---|---|---|
 | `[Invalid Host]` | Input isn't a valid IP address | Check for typos, stray whitespace, or a non-IP value (hostnames aren't accepted by `enrich`) |
 | `[No Hosts Provided]` | No IP given via argument, `--input-file`, or stdin | Supply at least one IP, or verify the input file/stdin actually contains data |
-| `[No Organization ID]` | Org ID not configured and not passed explicitly | Run `censys config org-id` to set it once, or pass `--org-id <id>` on the call |
+| `[No Organization ID]` | Org ID not configured and not passed explicitly | PAT users: run `censys config org-id` or pass `--org-id`. OAuth users: the org is fixed at login — re-run `censys auth login` to switch orgs |
 | Rate limited | Daily enrich rate limit reached | Wait for the daily reset — this limit is separate from search/view credits and can't be bypassed by purchasing more credits |
 
 ## Caveats

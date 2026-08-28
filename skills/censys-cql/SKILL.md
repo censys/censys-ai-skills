@@ -42,6 +42,7 @@ This skill is a reference only — it does not execute queries. Once the query s
 - **Classification**: `labels` (top-level, not `host.labels`)
 - **WHOIS**: `host.whois.organization.name`
 - **Software**: `host.services.software.vendor`, `host.services.software.product`, `host.services.software.version`
+- **OS**: `host.operating_system.product`, `host.operating_system.vendor`, `host.operating_system.version`
 - **Host metadata**: `host.service_count` (number of services — useful for profiling hosts with a specific service footprint)
 
 ### Endpoint fields
@@ -103,8 +104,8 @@ censys search "host.ip: '198.51.100.0/24'"
 # 4. Hosts on a specific autonomous system
 censys search "host.autonomous_system.asn: 13335"
 
-# 5. Hosts with an nginx Server header
-censys search "host.services.http.response.headers.server: nginx"
+# 5. Hosts running nginx (use software field — header queries return 422; see Gotcha #3)
+censys search "host.services.software.product: nginx"
 
 # 6. Certificates issued by Let's Encrypt (quoted apostrophe)
 censys search "cert.parsed.issuer.organization: 'Let'\''s Encrypt'"
@@ -178,7 +179,7 @@ Purpose-built infrastructure (C2 panels, relay boxes, proxy nodes) tends to have
 - `=` — exact match: the field value must equal the term exactly
 - `:` — flexible match: substring, tokenized, or "in" semantics depending on field type
 
-When it matters: on string fields, `:` can match substrings (`host.services.http.response.headers.server: nginx` matches "nginx/1.27.4"), while `=` requires the full value. On enum-like fields (protocol, transport_protocol), both behave the same in practice.
+When it matters: on string fields, `:` can match substrings (`host.services.software.product: nginx` matches entries containing "nginx"), while `=` requires the full value. On enum-like fields (protocol, transport_protocol), both behave the same in practice.
 
 Rule of thumb: use `=` when you know the exact value you're looking for; use `:` when exploring or when the value might appear as a substring of a longer string.
 
@@ -190,7 +191,7 @@ CQL search fields do NOT always match the JSON paths in `censys view` / `censys 
 |---|---|---|
 | Cert fingerprint | `host.services.tls.certificates.leaf_fp_sha_256` | `.services[].tls.fingerprint_sha256` or `.services[].cert.fingerprint_sha256` |
 | JARM fingerprint | `host.services.jarm` | `.services[].jarm.fingerprint` |
-| Server header | `host.services.http.response.headers.server` | `.services[].endpoints[].http.headers.Server.headers[]` |
+| Software identity | `host.services.software.product` | `.services[].software[].product` |
 | HTTP body | `host.services.endpoints.http.body` (see Gotchas #2) | `.services[].endpoints[].http.body` |
 | SSH host key | `host.services.ssh.server_host_key.fingerprint_sha256` | `.services[].ssh.server_host_key.fingerprint_sha256` (same) |
 | Banner hash | `host.services.banner_hash_sha256` | `.services[].banner_hash_sha256` (same) |

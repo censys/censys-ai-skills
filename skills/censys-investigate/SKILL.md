@@ -37,8 +37,8 @@ per-command skill for those instead of this one.
 
 ## Prerequisites
 
-Requires the [Censys CLI](https://github.com/censys/censys-cli) installed
-and authenticated. See the [repo README](../README.md#prerequisites) for
+Requires the [Censys CLI](https://github.com/Censys/cencli) installed
+and authenticated. See the [repo README](../../README.md#prerequisites) for
 install and auth steps.
 
 ## Structure
@@ -85,8 +85,13 @@ OS indicators. Populate **Host Profile** and **Current Services** in
 ### Step 3 — Historical timeline
 
 ```bash
-censys history <IP> --duration 1y -O json > data/censys_history_<IP>.json
+censys history <IP> --duration 30d -S > data/censys_history_<IP>.ndjson
 ```
+
+Start with 30 days and widen only if the baseline reveals a signal worth
+chasing further back. Always use streaming (`-S`) — buffered output on a
+large history can take minutes or fail to complete. Widen incrementally:
+`30d` → `90d` → `1y`.
 
 See `censys-timeline` for flag details, event model, and interpretation
 guidance.
@@ -99,7 +104,7 @@ events, reverse DNS. Populate **Infrastructure Timeline**.
 For each associated domain:
 
 ```bash
-censys history <domain>:443 --duration 1y -O json > data/censys_history_<domain>.json
+censys history <domain>:443 --duration 30d -S > data/censys_history_<domain>.ndjson
 ```
 
 Skip if no domains. Document DNS resolution history, flag previous IPs.
@@ -119,6 +124,10 @@ Extract all pivotable indicators from steps 2–4. Categorize using
   ```bash
   censys search '<query>' --max-pages -1 --page-size 100 -O json | jq 'length'
   ```
+
+  Note: `--max-pages -1` fetches up to 100 pages (10,000 results max). If
+  `jq 'length'` returns exactly 10,000, the true count is higher — treat it
+  as a floor.
 
   Do not count with `--page-size 1 --max-pages 1`. That command returns one
   record and no total. Do not count by adding `censys aggregate` buckets either:
@@ -181,16 +190,17 @@ Nothing is discarded.
 Naming convention:
 
 - `data/censys_view_<IP>.json`
-- `data/censys_history_<IP>.json`
-- `data/censys_history_<domain>.json`
-- `data/censys_history_cert_<sha256_prefix>.json`
+- `data/censys_history_<IP>.ndjson`
+- `data/censys_history_<domain>.ndjson`
+- `data/censys_history_cert_<sha256_prefix>.ndjson`
 - `data/pivot_results/<query_name>.json`
 - `data/pivot_results/<query_name>.err`
 
 Rules:
 
-- Never discard results, even 0-hit. Zero hits = "this indicator is unique to
-  target."
+- Never discard results, even 0-hit. Zero hits is a finding worth saving — it
+  means not currently visible. Confirm the field is indexed with `field:*`
+  before calling anything unique.
 - The **Data Files** section of `findings.md` references every file in
   `data/`.
 
@@ -459,9 +469,10 @@ population size and distribution.
 When an investigation surfaces a large candidate cluster (10+ hosts), verify
 membership efficiently:
 
-1. **Batch history pulls.** `censys history` on active hosts produces
-   1500–3000 events per year and takes 90–180 seconds per host. Chunk into
-   batches of 3–5 with extended timeouts (300s+). Save every result to `data/`.
+1. **Batch history pulls.** Budget time generously for bulk history pulls.
+   Even with streaming, a 90-day pull on an active host takes 60–180 seconds,
+   so 50 hosts sequentially is measured in hours, not minutes. Save every
+   result to `data/`.
 2. **Multi-signal confirmation.** Require at least two independent indicators
    (e.g., SSH key + CS watermark, or SSH key + port rotation pattern) before
    confirming cluster membership. A single shared indicator can be coincidence.

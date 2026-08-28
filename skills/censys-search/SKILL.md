@@ -103,9 +103,8 @@ censys search "host.services.protocol=SSH" --max-pages 3 -O json | \
 For bulk exports, always aggregate first to check population size before spending credits on a full pull:
 
 ```bash
-# Step 1: Check how many hosts match
-censys aggregate "<query>" "host.location.country" -O json 2>/dev/null | \
-  jq '[.[].count] | add'
+# Step 1: Check distribution before committing to a full pull
+censys aggregate "<query>" "host.location.country"
 
 # Step 2: Export (all three formats share the same backbone)
 censys search "<query>" --max-pages -1 -S 2>/dev/null | jq <filter>
@@ -149,7 +148,6 @@ censys search "<query>" --max-pages -1 -S 2>/dev/null | \
 
 ### Export caveats
 
-- **`--fields` and `-S` are incompatible** — combining them produces empty output. Use `-S` (streaming) and reshape with jq instead.
 - **`software.product` values are lowercase** — `software.product="AnyDesk"` silently returns nothing; use `software.product: "AnyDesk"` (`:` is case-insensitive) or `software.product="anydesk"`. See `censys-cql` for `=` vs `:` guidance.
 - **`2>/dev/null`** suppresses the status line (e.g. `200 (OK) - 1.2s`) that the CLI writes to stderr — without it, the status text can pollute piped output.
 
@@ -164,39 +162,40 @@ censys search "<query>" --max-pages -1 -S 2>/dev/null | \
 
 When redirecting `censys search -O json` to a file and parsing it later:
 
-1. **Status line on first line.** The CLI writes a status line to the output
-   (e.g., `200 (OK) - 347ms - pages: 1`) before the JSON array. Skip or
-   discard the first line before parsing JSON. In Python:
-   `f.readline(); data = json.load(f)`.
-2. **Result is a JSON array.** The output (after the status line) is a single
-   JSON array `[...]`, not NDJSON — unless `--streaming`/`-S` is passed.
-3. **Empty results may be `null`.** Some queries return `null` instead of `[]`
+1. **stdout is valid JSON.** The output (when using `-O json`) is a single
+   JSON array `[...]` starting on the first line. Parse it directly — no
+   line-skipping needed. The status line (e.g., `200 (OK) - 347ms`) goes to
+   stderr.
+2. **Empty results may be `null`.** Some queries return `null` instead of `[]`
    for zero results. Defensive parsing: `data = json.load(f) or []`.
-4. **`2>/dev/null` for clean piping.** The status line goes to stdout (not
-   stderr) when using `-O json` without redirection. When piping directly into
-   `jq`, use `2>/dev/null` to suppress any stderr diagnostics, but be aware the
-   status line is in the JSON stream — `jq` will error on it unless the output
-   is saved to a file and the first line is stripped.
+3. **Suppress stderr in pipelines.** Use `2>/dev/null` when piping into `jq`
+   to suppress the status line and any diagnostic output. Use `-q` to suppress
+   response metadata at the source.
 
 ## Caveats
 
-- `--max-pages -1` performs an exhaustive pull across all matching pages — this can consume significant API credits on broad queries. Confirm scope with the user (or add tightening conditions) before running an unbounded exhaustive search on a broad query.
+- `--max-pages -1` fetches up to the API maximum of 100 pages (10,000 results at the default page size) — this can consume significant API credits on broad queries, and returns no warning when capped. Confirm scope with the user (or add tightening conditions) before running an unbounded exhaustive search on a broad query.
 - `--page-size` above the platform's per-page maximum will be clamped by the API; there is no benefit to setting it above that ceiling.
 - `--fields` only trims the returned payload — it does not change which records match the query. Filtering must still happen in the CQL query itself or via post-retrieval `jq` filtering.
 - Results are subject to Censys data freshness/indexing lag; a very recent scan may not yet appear in search results.
 - `--collection-id` requires a valid collection UUID that the authenticated identity has access to; an unrecognized or unauthorized UUID returns an error rather than an empty result set.
-- **Run `censys` commands one at a time.** The CLI keeps a local cache database and takes a write lock on it. Two or more concurrent `censys` processes fail with `failed to set journal_mode WAL: database is locked (261)`. The command exits 0 and writes an empty output file, so the failure is easy to miss. Check that each output file is not empty before you use it. Run batches in a sequential loop, not with `&`.
+- **Run `censys` commands one at a time (cencli < 1.1.3).** On versions before 1.1.3, the CLI's local cache database can produce `failed to set journal_mode WAL: database is locked (261)` when two or more concurrent `censys` processes run. The command exits 0 and writes an empty output file, so the failure is easy to miss. Check that each output file is not empty before you use it. The fix in cencli 1.1.3 (`#82`) serializes concurrent database initialization. On 1.1.3+, parallel invocations have been observed to succeed, though a race cannot be fully excluded.
 - **To count matching hosts, page the query** and count the records:
 
   ```bash
   censys search '<query>' --max-pages -1 --page-size 100 -O json | jq 'length'
   ```
 
+  Note: `--max-pages -1` fetches up to the API maximum of 100 pages. At
+  `--page-size 100` this caps at 10,000 results with no warning. If
+  `jq 'length'` returns exactly 10,000, the true count is higher — report
+  it as a floor, not a total.
+
   Do not add `censys aggregate` buckets to get a total — `-n` limits the bucket list (default 25) and the sum can be far below the true total. See `censys-aggregate`.
 
 ## Managing collections (no CLI support)
 
-`censys search` and `censys aggregate` can *read* a collection with `-c`, but the CLI cannot create, update, list, or delete one. Use the Platform API for that. Authenticate with the same environment variables the CLI uses (`CENSYS_PLATFORM_TOKEN`, `CENSYS_PLATFORM_ORGID`).
+`censys search` and `censys aggregate` can *read* a collection with `-c`, but the CLI cannot create, update, list, or delete one. Use the Platform API for that. Authenticate with `CENSYS_PLATFORM_TOKEN` and `CENSYS_PLATFORM_ORGID`. These are Platform API variables — they are not used by the `censys` CLI itself, which stores credentials in its own database.
 
 Base URL: `https://api.platform.censys.io/v3/collections`. Every request needs `?organization_id=$CENSYS_PLATFORM_ORGID`.
 

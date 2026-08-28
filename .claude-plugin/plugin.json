@@ -2,6 +2,7 @@
   "name": "censys",
   "description": "Claude Code skills for threat hunting, asset discovery, and security research with the Censys CLI",
   "version": "1.0.0",
+  "license": "Apache-2.0",
   "author": {
     "name": "Brandon Levene",
     "email": "blevene@censys.com"

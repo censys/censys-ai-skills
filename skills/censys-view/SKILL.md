@@ -135,7 +135,8 @@ censys view 8.8.8.8 -O json | jq '.services[]'
 - Use `-O yaml` when the user wants something diffable/readable but still
   structured.
 - For multi-asset lookups where the user wants to review-and-move-on rather than
-  post-process, pair `-O short` with `-S` so results appear incrementally.
+  post-process, use `-S` (streaming) so results appear incrementally as NDJSON.
+  `-S` and `-O` cannot be combined — streaming is the output format.
 
 ## Error handling
 

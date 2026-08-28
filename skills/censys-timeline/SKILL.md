@@ -46,9 +46,14 @@ censys history <asset> [flags]
 | `--start`, `-s <RFC3339>` | Absolute window start |
 | `--end`, `-e <RFC3339>` | Absolute window end |
 
-`--start`/`--end` and `--duration` are mutually exclusive ways of bounding the
-same window — use `--duration` for "last N of something," and `--start`/`--end`
-for an exact incident window.
+`--start`/`--end` and `--duration` compose:
+
+| Flags given | Window |
+|---|---|
+| `--duration` only | now − duration → now |
+| `--start` + `--duration` | start → start + duration |
+| `--end` + `--duration` | end − duration → end |
+| `--start` + `--end` | exact window; `--duration` ignored if also passed |
 
 ### Global CLI flags (apply to all `censys` subcommands)
 
@@ -78,7 +83,7 @@ Each event has `event_time` plus exactly one of these payload keys:
 |---|---|---|
 | `endpoint_scanned` | HTTP/banner-level observation (headers, body, HTML title) | `.endpoint_scanned.scan.endpoint_type` |
 | `service_scanned` | Service-level observation (TLS, SSH, RDP, protocol ID) | `.service_scanned.scan.protocol` |
-| `jarm_scanned` | JARM fingerprint observation | `.jarm_scanned.scan.jarm` |
+| `jarm_scanned` | JARM fingerprint observation | `.jarm_scanned.scan.fingerprint` |
 | `forward_dns_resolved` | DNS A/AAAA resolution change | — |
 | `reverse_dns_resolved` | Reverse DNS (PTR) change | — |
 | `whois_updated` | WHOIS registration change | — |
@@ -102,7 +107,7 @@ Use event types to classify changes:
 
 ```bash
 # Last 30 days — always save to file for reuse across jq passes
-censys history 8.8.8.8 --duration 30d -O json > /tmp/timeline.json
+censys history 8.8.8.8 --duration 30d -O json > data/timeline.json
 
 # Bounded window for incident investigation
 censys history 8.8.8.8 --start 2025-06-01T00:00:00Z --end 2025-06-15T00:00:00Z -O json
@@ -114,31 +119,31 @@ censys history example.com:443 --duration 14d -O json
 censys history <sha256> --start 2025-01-01T00:00:00Z --end 2025-06-01T00:00:00Z
 
 # Stream events as NDJSON instead of buffering a full array
-censys history 8.8.8.8 --duration 90d -O json -S
+censys history 8.8.8.8 --duration 90d -S
 ```
 
 ## Temporal analysis with jq
 
 ```bash
 # When did a specific port first appear?
-jq '[.[] | select(.services[]? | .port == 8443)] | sort_by(.event_time) | .[0].event_time' \
-  /tmp/timeline.json
+jq '[.[] | select(.service_scanned.scan.port == 8443) | .event_time] | sort | .[0]' \
+  data/timeline.json
 
 # Track cert rotations over time (unique leaf fingerprints in order)
-jq '[.[] | .services[]? | select(.tls) |
-    {time: .observed_at, cert: .tls.fingerprint_sha256}] |
-    unique_by(.cert)' /tmp/timeline.json
+jq '[.[] | .service_scanned.scan.tls.fingerprint_sha256 // empty |
+    {cert: .}] | unique_by(.cert)' data/timeline.json
 
 # Find all service-level changes, chronologically
-jq '[.[] | {time: .event_time, type: .event_type,
-    services: [.services[]? | {port, protocol}]}] | sort_by(.time)' \
-  /tmp/timeline.json
+jq '[.[] | select(.service_scanned) | {time: .event_time,
+    port: .service_scanned.scan.port,
+    protocol: .service_scanned.scan.protocol}] | sort_by(.time)' \
+  data/timeline.json
 
 # Compare host state at two points in time (snapshot diff, not history events)
-censys view 1.2.3.4 --at-time 2025-06-01T00:00:00Z -O json > /tmp/before.json
-censys view 1.2.3.4 -O json > /tmp/after.json
-diff <(jq -S '.[0].services | sort_by(.port)' /tmp/before.json) \
-     <(jq -S '.[0].services | sort_by(.port)' /tmp/after.json)
+censys view 1.2.3.4 --at-time 2025-06-01T00:00:00Z -O json > data/before.json
+censys view 1.2.3.4 -O json > data/after.json
+diff <(jq -S '.[0].services | sort_by(.port)' data/before.json) \
+     <(jq -S '.[0].services | sort_by(.port)' data/after.json)
 ```
 
 For anything beyond these direct lookups — cross-referencing multiple hosts'
@@ -147,7 +152,7 @@ to `censys-analyze` once the timeline JSON is on disk.
 
 ## Change detection workflow
 
-1. Pull history with a wide window: `censys history <ip> --duration 90d -O json > /tmp/timeline.json`.
+1. Pull history with a wide window: `censys history <ip> --duration 90d -O json > data/timeline.json`.
 2. Extract event timestamps and types with jq (see patterns above) to build a
    chronological list of what changed and when.
 3. Look for **clusters** — multiple distinct event types (e.g. new cert + new
@@ -182,33 +187,32 @@ to `censys-analyze` once the timeline JSON is on disk.
 
 ## Performance characteristics
 
-Active hosts accumulate roughly 50–100 events per month. Expect these ranges
-for a `--duration 1y` pull:
+History volume depends heavily on the host and time window. A busy,
+well-scanned host can produce thousands of events per day — measured:
+8.8.8.8 returned 2,621 events for a single day.
 
-| Host activity level | Events | Wall-clock time |
-|---|---|---|
-| Quiet (1–3 services, stable) | 200–600 | 15–45 seconds |
-| Moderate (5–10 services, some churn) | 800–1500 | 45–90 seconds |
-| Active (10+ services, frequent rotation) | 1500–3000 | 90–180 seconds |
+**Always use streaming (`-S`) for history pulls.** Buffered output (`-O json`
+without `-S`) loads the entire result into memory before writing anything.
+On a large history this can take minutes or never complete. Streaming emits
+events as they arrive and completes in a fraction of the time.
 
 For bulk history pulls across many hosts:
 
-- **Chunk into batches of 3–5.** Running 50 concurrent `censys history` calls
-  will exhaust rate limits and timeout. Sequential batches of 3–5 with extended
-  timeouts (300s+) are more reliable.
-- **Avoid shell parallelism with `-O json`.** Parallel subshells writing JSON
-  to separate files is fine, but merging concurrent JSON outputs into one
-  stream produces parse errors.
-- **Budget time.** 50 hosts × 1-year history ≈ 25–50 minutes of sequential
-  pull time. Plan accordingly and save each result to `data/` as it completes.
+- **Start narrow.** Use `--duration 7d` or `--duration 30d` to confirm
+  the signal is there before widening. A 1-year pull on an active host
+  can produce hundreds of thousands of events.
+- **Chunk into batches of 3–5** with extended timeouts (300s+) if doing
+  sequential pulls. Save each result to `data/` as it completes.
+- **Budget time generously.** Even with streaming, a 90-day pull on an
+  active host can take 60–180 seconds.
 
 ## Parsing CLI output programmatically
 
 When redirecting `censys history -O json` to a file and parsing it later:
 
-1. **Status line on first line.** The CLI writes a status line (e.g.,
-   `200 (OK) - 2.1s`) before the JSON array. Skip or discard the first line
-   before parsing JSON. In Python: `f.readline(); data = json.load(f)`.
+1. **stdout is valid JSON.** The output (when using `-O json`) is a single
+   JSON array starting on the first line. Parse it directly — no line-skipping
+   needed. The status line goes to stderr and `-q` suppresses it.
 2. **Empty results may be `null`.** Some hosts return `null` instead of `[]`
    for zero events. Defensive parsing: `data = json.load(f) or []`.
 3. **Large outputs.** A 3000-event history can be several MB of JSON. For

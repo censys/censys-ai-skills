@@ -47,7 +47,6 @@ Unlike most other `censys` subcommands, `aggregate` defaults to `-O short` rathe
 These apply to every `censys` subcommand, not just `aggregate`:
 
 - `--output-format`, `-O` — output format (`json`, `yaml`, `tree`, `short`; `template` not supported here)
-- `--streaming`, `-S` — emit NDJSON instead of a JSON array
 - `--quiet`, `-q` — suppress non-essential output
 - `--debug` — verbose diagnostic logging
 - `--no-color` — disable ANSI color in terminal output

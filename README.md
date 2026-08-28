@@ -13,15 +13,25 @@ claude plugin install censys
 
 ### Prerequisites
 
-The plugin requires the [Censys CLI](https://github.com/Censys/cencli) (`censys`):
+The plugin requires [cencli](https://github.com/Censys/cencli) ≥ 1.0:
 
 ```bash
-pip install censys
-# or
-brew install censys/homebrew-censys/censys
+# Homebrew (macOS/Linux)
+brew install --cask censys/tap/cencli
+
+# Or download the release binary directly
+# https://github.com/censys/cencli/releases/latest
 ```
 
-See the [Censys CLI README](https://github.com/Censys/cencli#readme) for full install options.
+Verify the install:
+
+```bash
+censys version   # should print JSON with a 1.x version
+```
+
+> **Note:** `pip install censys` installs [censys-python](https://github.com/censys/censys-python)
+> (the legacy Search API wrapper), not cencli. The two are different tools with
+> different CLIs. There is no pip package for cencli.
 
 ### Authenticate
 
@@ -53,7 +63,7 @@ request. Skills fall into three layers:
 
 | Layer | Skills | Purpose |
 |---|---|---|
-| **Command wrappers** | censys-search, censys-view, censys-aggregate, censys-enrich, censys-censeye, censys-timeline | Translate a user request into the right CLI command, flags, and output handling. One skill per `censys` subcommand. |
+| **Command wrappers** | censys-search, censys-view, censys-aggregate, censys-enrich, censys-censeye, censys-timeline | Translate a user request into the right CLI command, flags, and output handling. One skill per data-retrieval subcommand. |
 | **Reference** | censys-cql | Query language syntax, field paths, operators, known noise. Consulted by other skills when constructing queries — not a CLI wrapper itself. |
 | **Methodology** | censys-investigate, censys-analyze | Multi-step workflows that orchestrate the command skills. `censys-investigate` runs a baseline collection phase then branches through decision trees; `censys-analyze` handles post-retrieval jq/SQLite analysis. |
 
@@ -94,7 +104,7 @@ invocation is one Censys API call unless pagination is involved.
 | censys-enrich | 1 | Single or batch IP enrichment. Credit-free. |
 | censys-aggregate | 1 | Single aggregation query, no pagination. |
 | censys-censeye | 1 per host | `--input-file` with N hosts = N calls. |
-| censys-search | 1 per page | Default is 1 page (100 results). `--max-pages -1` fetches all pages — unbounded. |
+| censys-search | 1 per page | Default is 1 page (100 results). `--max-pages -1` fetches up to 100 pages (10,000 results at page-size 100) — not unbounded. |
 | censys-timeline | 1–N | Depends on history depth and time window. Streaming mode pages automatically. |
 | censys-cql | 0 | Reference skill only — no CLI calls. |
 | censys-analyze | 0 | Post-processing skill. Operates on saved output from other skills. |
@@ -143,5 +153,5 @@ The biggest driver of API usage is `censys search` (two-thirds of all
 calls). To limit consumption:
 
 - Use `--max-pages` to cap search pagination (default is 1 page / 100 results)
-- Use `censys-aggregate` for counting before committing to full result pulls
+- Use `censys-aggregate` to see distribution before pulling full results — it shows the shape of the data, not an exact total
 - Limit pivot depth in `censys-investigate` by narrowing indicator scope early

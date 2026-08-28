@@ -62,7 +62,6 @@ exit code — see Error handling.
 | Flag | Purpose |
 |---|---|
 | `--output-format`, `-O <fmt>` | `short` (default), `json`, `yaml`, or `tree` for censeye |
-| `--streaming`, `-S` | Stream results as they arrive rather than buffering |
 | `--quiet`, `-q` | Suppress non-essential output |
 | `--debug` | Verbose diagnostic logging |
 | `--no-color` | Disable ANSI color in terminal output |
@@ -80,7 +79,7 @@ censys censeye 8.8.8.8
 censys censeye --rarity-min 2 --rarity-max 25 1.1.1.1
 
 # Machine-readable output with Platform search URLs included
-censys censeye --output-format json --include-url 192.168.1.1
+censys censeye --output-format json --include-url 203.0.113.5
 
 # Interactive TUI for exploring pivot candidates
 censys censeye 8.8.8.8 -I
@@ -101,9 +100,9 @@ echo "8.8.8.8" | censys censeye --input-file -
 [
   {
     "count": 42,
-    "query": "services.tls.certificates.leaf_fp_sha_256: abc123...",
+    "query": "host.services.tls.certificates.leaf_fp_sha_256: abc123...",
     "interesting": true,
-    "search_url": "https://search.censys.io/search?q=..."
+    "search_url": "https://platform.censys.io/search?q=..."
   }
 ]
 ```
