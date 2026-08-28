@@ -44,7 +44,7 @@ Unlike most other `censys` subcommands, `aggregate` defaults to `-O short` rathe
 
 ### Global CLI flags
 
-See `references/cli-globals.md` for the full global flags reference (output
+See `${CLAUDE_SKILL_DIR}/references/cli-globals.md` for the full global flags reference (output
 format, diagnostics, org-id, and PAT vs OAuth notes). Note: `aggregate` does
 not support `-S` (streaming) or `-O template`.
 

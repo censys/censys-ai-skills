@@ -40,7 +40,7 @@ Pass `--output-format`/`-O` with one of: `json` (default), `yaml`, `tree`, `shor
 
 ### Global CLI flags
 
-See `references/cli-globals.md` for the full global flags reference (output
+See `${CLAUDE_SKILL_DIR}/references/cli-globals.md` for the full global flags reference (output
 format, streaming, diagnostics, org-id, and PAT vs OAuth notes).
 
 ## Common patterns

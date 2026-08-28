@@ -57,7 +57,7 @@ censys history <asset> [flags]
 
 ### Global CLI flags
 
-See `references/cli-globals.md` for the full global flags reference (output
+See `${CLAUDE_SKILL_DIR}/references/cli-globals.md` for the full global flags reference (output
 format, streaming, diagnostics, org-id, and PAT vs OAuth notes). Note:
 `history` does not support `-O short` or `-O template` (exit code 2).
 

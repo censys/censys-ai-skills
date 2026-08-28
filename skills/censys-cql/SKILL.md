@@ -89,11 +89,11 @@ running a wildcard query (`field:*`) before interpreting 0 results as "unique."
 - **Response/classification**: `webproperty.endpoints.http.status_code`, `webproperty.labels`
 - **Software**: `webproperty.software.vendor`, `webproperty.software.product`
 
-For copy-paste query examples, see [references/cookbook.md](references/cookbook.md).
+For copy-paste query examples, see [${CLAUDE_SKILL_DIR}/references/cookbook.md](${CLAUDE_SKILL_DIR}/references/cookbook.md).
 
 ## Query construction patterns
 
-The [cookbook](references/cookbook.md) gives copy-paste examples. This section teaches how to _think about_ building queries — especially when combining conditions across nested fields.
+The [cookbook](${CLAUDE_SKILL_DIR}/references/cookbook.md) gives copy-paste examples. This section teaches how to _think about_ building queries — especially when combining conditions across nested fields.
 
 ### Compound service matching
 
@@ -160,7 +160,7 @@ CQL search fields do NOT always match the JSON paths in `censys view` / `censys 
 
 - Values containing spaces, colons, slashes, hyphens, or other special characters must be wrapped in single quotes or double quotes: `'value with spaces'`, `"remote-access"`. Hyphens are especially treacherous — `labels: remote-access` fails because the parser reads `-access` as negation.
 - CQL keywords (`and`, `or`, `not`) appearing *as literal values* (not as operators) must be quoted, or the parser will treat them as boolean operators.
-- Single quotes inside a quoted value are escaped by doubling them in CQL itself (`'Let''s Encrypt'`); when that same string is passed through a shell command line, the shell's own quoting also needs escaping, which produces the doubled pattern `'\''` seen in [cookbook](references/cookbook.md) example 6 — one layer for the shell, one for CQL.
+- Single quotes inside a quoted value are escaped by doubling them in CQL itself (`'Let''s Encrypt'`); when that same string is passed through a shell command line, the shell's own quoting also needs escaping, which produces the doubled pattern `'\''` seen in [cookbook](${CLAUDE_SKILL_DIR}/references/cookbook.md) example 6 — one layer for the shell, one for CQL.
 - When in doubt, quote the value. Quoting an already-safe token (e.g., a bare number or single word) is harmless; failing to quote a token that needs it causes a parse error or a silently wrong match.
 
 ## Gotchas
@@ -189,7 +189,7 @@ CQL search fields do NOT always match the JSON paths in `censys view` / `censys 
    nothing; use `software.product: "AnyDesk"` (`:` is case-insensitive) or
    `software.product="anydesk"` (exact lowercase).
 
-For known-noise indicators to exclude during triage, see [references/known-noise.md](references/known-noise.md).
+For known-noise indicators to exclude during triage, see [${CLAUDE_SKILL_DIR}/references/known-noise.md](${CLAUDE_SKILL_DIR}/references/known-noise.md).
 
 ## Cross-references
 

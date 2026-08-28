@@ -59,7 +59,7 @@ exit code — see Error handling.
 
 ### Global CLI flags
 
-See `references/cli-globals.md` for the full global flags reference (output
+See `${CLAUDE_SKILL_DIR}/references/cli-globals.md` for the full global flags reference (output
 format, diagnostics, org-id, and PAT vs OAuth notes). Note: `censeye` does
 not support `-S` (streaming) or `-O template`. Default output is `short`.
 

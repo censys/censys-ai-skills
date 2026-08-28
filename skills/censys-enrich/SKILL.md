@@ -71,7 +71,7 @@ enrich's own limit, but useful if the user is also planning follow-up `view`/
 
 ### Global CLI flags
 
-See `references/cli-globals.md` for the full global flags reference
+See `${CLAUDE_SKILL_DIR}/references/cli-globals.md` for the full global flags reference
 (diagnostics, org-id, and PAT vs OAuth notes). Note: `enrich` under OAuth
 does not accept `--org-id` — the org is fixed at login time.
 

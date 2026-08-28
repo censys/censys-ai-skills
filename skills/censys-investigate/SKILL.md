@@ -219,18 +219,18 @@ The baseline's outputs determine which decision tree(s) to enter. Multiple
 trees may apply, and trees feed back into each other as new candidates surface.
 
 For the full decision tree flowcharts (Trees 1–6), see
-[references/decision-trees.md](references/decision-trees.md).
+[${CLAUDE_SKILL_DIR}/references/decision-trees.md](${CLAUDE_SKILL_DIR}/references/decision-trees.md).
 
 ## Findings template
 
 Initialize `analysis/findings.md` from the template in
-[references/findings-template.md](references/findings-template.md) at the start
+[${CLAUDE_SKILL_DIR}/references/findings-template.md](${CLAUDE_SKILL_DIR}/references/findings-template.md) at the start
 of every investigation.
 
 ## Pivoting patterns
 
 Tactical pivot techniques and bulk verification procedures are in
-[references/pivot-patterns.md](references/pivot-patterns.md).
+[${CLAUDE_SKILL_DIR}/references/pivot-patterns.md](${CLAUDE_SKILL_DIR}/references/pivot-patterns.md).
 
 ## Cross-references
 
