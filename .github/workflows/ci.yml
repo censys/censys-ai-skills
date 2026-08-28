@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    name: Plugin validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Validate plugin manifest
+        run: claude plugin validate .
+
+  test:
+    name: Script tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      - name: Install SQLite
+        run: |
+          sqlite3 --version
+          # Ubuntu runners ship sqlite3 3.38+; verify json_extract works
+          sqlite3 :memory: "SELECT json_extract('{\"a\":1}', '$.a')" | grep -q 1
+
+      - name: Run all tests
+        run: bash tests/run-all.sh
