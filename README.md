@@ -7,7 +7,7 @@ working with [Censys](https://censys.io) internet intelligence data via the
 ## Install
 
 ```bash
-claude plugin marketplace add Blevene/censys_skills
+claude plugin marketplace add censys/censys-ai-skills
 claude plugin install censys
 ```
 

@@ -2,8 +2,6 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-total_pass=0
-total_fail=0
 failed_suites=()
 
 for test in "$SCRIPT_DIR"/test-*.sh; do

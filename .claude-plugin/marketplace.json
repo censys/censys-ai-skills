@@ -15,6 +15,7 @@
         "email": "blevene@censys.com"
       },
       "category": "security",
+      "repository": "https://github.com/censys/censys-ai-skills",
       "source": ".",
       "homepage": "https://github.com/Censys/cencli"
     }

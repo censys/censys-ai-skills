@@ -26,6 +26,11 @@ json_file="$1"
 db_file="$2"
 table="${3:-hosts}"
 
+if [[ ! "$table" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
+  echo "Error: invalid table name: $table" >&2
+  exit 1
+fi
+
 if [[ ! -f "$json_file" ]]; then
   echo "Error: file not found: $json_file" >&2
   exit 1

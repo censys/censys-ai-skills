@@ -39,7 +39,7 @@ Accepts:
 | `--input-file <path>` | `censys enrich --input-file ips.txt` |
 | stdin (via `--input-file -`) | `cat ips.txt \| censys enrich --input-file -` |
 
-Defanged IPs are accepted and normalized automatically, e.g. `104[.]168[.]107[.]43`
+Defanged IPs are accepted and normalized automatically, e.g. `203[.]0[.]113[.]42`
 → `203.0.113.42`.
 
 ### Requirements

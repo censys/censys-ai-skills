@@ -47,7 +47,7 @@ the investigation methodology.
 ## Prerequisites
 
 Requires the [Censys CLI](https://github.com/Censys/cencli) installed
-and authenticated. See the [repo README](../../README.md#prerequisites) for
+and authenticated. See the [repo README](${CLAUDE_PLUGIN_ROOT}/README.md#prerequisites) for
 install and auth steps.
 
 ## Structure

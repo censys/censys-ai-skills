@@ -40,7 +40,7 @@ jq_ndjson='{
   as_name: .host.autonomous_system.name,
   country: .host.location.country_code,
   city: .host.location.city,
-  services: [.host.services[] | {port, protocol, software: [.software[]?.product] | join(",")}]
+  services: [.host.services[]? | {port, protocol, software: [.software[]?.product] | join(",")}]
 }'
 
 jq_csv='[
@@ -49,7 +49,7 @@ jq_csv='[
   .host.autonomous_system.name,
   .host.location.country_code,
   .host.location.city,
-  ([.host.services[].port | tostring] | join(";"))
+  ([.host.services[]?.port | tostring] | join(";"))
 ] | @csv'
 
 run_export() {

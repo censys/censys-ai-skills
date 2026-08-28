@@ -38,10 +38,16 @@ done
 
 ceiling=$((page_size * MAX_PAGES))
 
-raw=$(censys search "$query" --max-pages -1 --page-size "$page_size" -O json 2>/dev/null)
+stderr_file=$(mktemp "${TMPDIR:-/tmp}/censys-count-stderr.XXXXXX")
+trap 'rm -f "$stderr_file"' EXIT
+raw=$(censys search "$query" --max-pages -1 --page-size "$page_size" -O json 2>"$stderr_file") || true
 
 if [[ -z "$raw" ]]; then
-  echo "Error: censys search returned no output" >&2
+  if [[ -s "$stderr_file" ]]; then
+    cat "$stderr_file" >&2
+  else
+    echo "Error: censys search returned no output" >&2
+  fi
   exit 1
 fi
 

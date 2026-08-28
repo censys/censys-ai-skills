@@ -9,30 +9,7 @@ TMPDIR="${TMPDIR:-/tmp}"
 TEST_DIR=$(mktemp -d "$TMPDIR/censys-sqlite-test.XXXXXX")
 trap 'rm -rf "$TEST_DIR"' EXIT
 
-pass=0
-fail=0
-
-assert_eq() {
-  local label="$1" expected="$2" actual="$3"
-  if [[ "$expected" == "$actual" ]]; then
-    echo "  PASS: $label"
-    pass=$((pass + 1))
-  else
-    echo "  FAIL: $label (expected '$expected', got '$actual')"
-    fail=$((fail + 1))
-  fi
-}
-
-assert_exit() {
-  local label="$1" expected="$2" actual="$3"
-  if [[ "$expected" -eq "$actual" ]]; then
-    echo "  PASS: $label"
-    pass=$((pass + 1))
-  else
-    echo "  FAIL: $label (expected exit $expected, got $actual)"
-    fail=$((fail + 1))
-  fi
-}
+source "$SCRIPT_DIR/helpers.sh"
 
 echo "=== censys-to-sqlite.sh tests ==="
 
@@ -101,6 +78,22 @@ if [[ "$stderr" == *"Usage"* ]]; then
   pass=$((pass + 1))
 else
   echo "  FAIL: stderr missing usage"
+  fail=$((fail + 1))
+fi
+
+echo ""
+echo "--- Test: rejects invalid table name ---"
+set +e
+PATH="$TEST_DIR:$PATH" bash "$SCRIPT" "$FIXTURES/search_results_3.json" "$TEST_DIR/inject.db" "hosts; DROP TABLE hosts; --" 2>"$TEST_DIR/stderr.txt"
+exit_code=$?
+set -e
+assert_exit "exit code 1 on invalid table" 1 "$exit_code"
+stderr=$(cat "$TEST_DIR/stderr.txt")
+if [[ "$stderr" == *"invalid table name"* ]]; then
+  echo "  PASS: stderr rejects invalid table name"
+  pass=$((pass + 1))
+else
+  echo "  FAIL: stderr missing rejection (got: $stderr)"
   fail=$((fail + 1))
 fi
 

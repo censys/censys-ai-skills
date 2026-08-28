@@ -34,5 +34,22 @@ jobs:
           # Ubuntu runners ship sqlite3 3.38+; verify json_extract works
           sqlite3 :memory: "SELECT json_extract('{\"a\":1}', '$.a')" | grep -q 1
 
+      - name: Shellcheck
+        run: |
+          sudo apt-get install -y shellcheck
+          shellcheck scripts/*.sh hooks/*.sh tests/*.sh
+
+      - name: Verify cli-globals.md copies are identical
+        run: |
+          checksum=$(sha256sum skills/censys-search/references/cli-globals.md | cut -d' ' -f1)
+          for f in skills/*/references/cli-globals.md; do
+            actual=$(sha256sum "$f" | cut -d' ' -f1)
+            if [[ "$actual" != "$checksum" ]]; then
+              echo "DRIFT: $f differs from censys-search copy" >&2
+              exit 1
+            fi
+          done
+          echo "All cli-globals.md copies are identical ($checksum)"
+
       - name: Run all tests
         run: bash tests/run-all.sh
