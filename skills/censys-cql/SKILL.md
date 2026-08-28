@@ -224,7 +224,7 @@ CQL search fields do NOT always match the JSON paths in `censys view` / `censys 
 
 3. **No direct header-based queries.** Compound queries on specific HTTP headers
    (e.g., `host.services.http.headers.(key=X-Powered-By and value.headers=Express)`)
-   return 422. Use `host.services.software.product` instead — Censys extracts
+   return 422 (verified on cencli 1.1.3, 2026-08). Use `host.services.software.product` instead — Censys extracts
    software identity from headers into the software field.
 
 4. **Body text search uses `:`, not `=`.** Use
@@ -239,7 +239,7 @@ CQL search fields do NOT always match the JSON paths in `censys view` / `censys 
 ## Known noise
 
 Indicators that look distinctive but return too many unrelated matches for
-attribution. Check this list during indicator triage before building pivot queries.
+attribution (from investigation data). Check this list during indicator triage before building pivot queries.
 
 | Indicator | Why it's noise |
 |---|---|

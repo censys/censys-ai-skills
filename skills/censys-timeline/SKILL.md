@@ -46,7 +46,7 @@ censys history <asset> [flags]
 | `--start`, `-s <RFC3339>` | Absolute window start |
 | `--end`, `-e <RFC3339>` | Absolute window end |
 
-`--start`/`--end` and `--duration` compose:
+`--start`/`--end` and `--duration` compose (per CLI help examples):
 
 | Flags given | Window |
 |---|---|
@@ -77,7 +77,7 @@ moment.
 
 ### Event types and their JSON structure
 
-Each event has `event_time` plus exactly one of these payload keys:
+Each event has `event_time` plus exactly one of these payload keys (verified against cencli 1.1.3 output, 2026-08):
 
 | Payload key | What it captures | Protocol field |
 |---|---|---|
@@ -189,7 +189,7 @@ to `censys-analyze` once the timeline JSON is on disk.
 
 History volume depends heavily on the host and time window. A busy,
 well-scanned host can produce thousands of events per day — measured:
-8.8.8.8 returned 2,621 events for a single day.
+8.8.8.8 returned 2,621 events for a single day (measured on cencli 1.1.3, 2026-08).
 
 **Always use streaming (`-S`) for history pulls.** Buffered output (`-O json`
 without `-S`) loads the entire result into memory before writing anything.

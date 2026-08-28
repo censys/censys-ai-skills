@@ -1,6 +1,6 @@
 ---
 name: censys-view
-description: Use when the user wants detailed point-lookup data on a single asset via the Censys CLI — e.g. "censys view," "censys look up this IP," "censys host details for," "view this cert on censys," "censys what services does X run," "censys view this cert," "look this host up on censys," "censys pull the record for," or "what does censys show for this hostname." Wraps `censys view` for hosts, certificates, and web properties. Not for search-by-criteria (see censys-search) or time-series history (see censys-timeline).
+description: Use when the user wants detailed point-lookup data on a single asset via the Censys CLI — e.g. "censys view," "censys look up this IP," "censys host details for," "view this cert on censys," "censys what services does X run," "censys view this cert," "look this host up on censys," "censys pull the record for," "what does censys show for this hostname," "what's running on this IP," "profile this host," or "show me this host's services." Wraps `censys view` for hosts, certificates, and web properties. This is the right skill for any single-asset lookup — use censys-investigate only when the user explicitly asks for a multi-step investigation. Not for search-by-criteria (see censys-search) or time-series history (see censys-timeline).
 version: 0.1.0
 ---
 

@@ -1,17 +1,17 @@
 ---
 name: censys-investigate
 description: >-
-  Use when the user wants to run a broader censys investigation rather than a
-  single lookup — e.g. "censys investigate," "censys deep dive into," "trace
-  this infrastructure with censys," "censys pivot chain," "full censys
-  investigation," "investigate this IP," "profile this host," "what's running
-  on this IP," "analyze this IP's infrastructure," or "/censys-investigate."
-  Structured as a baseline collection phase (always run: host profile, historical
-  timeline, domain/DNS chase, indicator triage) followed by decision trees that
-  branch on what the baseline reveals (unique artifact pivots, behavioral
-  compounds, body content search, deep-dive assessment). Prescribes a findings
-  template and data preservation convention. Not for a single command invocation —
-  see the per-command skills for that.
+  Use when the user explicitly requests a multi-step Censys investigation —
+  e.g. "censys investigate," "censys deep dive into," "trace this
+  infrastructure with censys," "censys pivot chain," "full censys
+  investigation," "hunt for related infrastructure," or
+  "/censys-investigate." This is a heavyweight methodology skill (typically
+  20–50+ API calls) — do NOT fire on simple lookups like "what's running on
+  this IP" or "profile this host" (use censys-view for those). Structured as
+  a baseline collection phase followed by decision trees that branch on what
+  the baseline reveals. Prescribes a findings template and data preservation
+  convention. Always confirms scope and estimated cost with the user before
+  starting.
 version: 0.3.0
 ---
 
@@ -19,21 +19,25 @@ version: 0.3.0
 
 ## When to use
 
-Fires on multi-command investigation requests — asks that span more than one
-Censys command and need a methodology, not just a flag reference. Typical
-triggers:
+Fires on explicit multi-command investigation requests — asks that need a
+methodology spanning several Censys commands, not just a single lookup.
+Typical triggers:
 
 - "censys investigate 1.2.3.4"
 - "censys deep dive into this actor's infrastructure"
 - "trace this infrastructure with censys"
-- "profile this host"
-- "what's running on this IP"
-- "analyze this IP's infrastructure"
+- "hunt for related infrastructure"
+- "full censys investigation on this range"
 - "/censys-investigate 203.0.113.5"
 
 NOT for a single lookup (`censys-view`), a single search (`censys-search`), or
-a single history request (`censys-timeline`). Go straight to the matching
-per-command skill for those instead of this one.
+a single history request (`censys-timeline`). If the user says "what's running
+on this IP," "profile this host," or "show me this host's services" — use
+`censys-view`, not this skill.
+
+**Before starting:** confirm with the user the investigation target, estimated
+API call count (typically 20–50+ for a standard investigation, 100+ for deep
+pivoting), and whether they want the full methodology or a lighter pass.
 
 ## Prerequisites
 
@@ -122,12 +126,12 @@ Extract all pivotable indicators from steps 2–4. Categorize using
   25+ → broad.
 
   ```bash
-  censys search '<query>' --max-pages -1 --page-size 100 -O json | jq 'length'
+  "${CLAUDE_PLUGIN_ROOT}/scripts/censys-count.sh" '<query>'
   ```
 
-  Note: `--max-pages -1` fetches up to 100 pages (10,000 results max). If
-  `jq 'length'` returns exactly 10,000, the true count is higher — treat it
-  as a floor.
+  The script pages the full result set and prints the count. It exits 2 with
+  a warning if the count hits the 10,000-result API ceiling — treat that
+  number as a floor, not a total.
 
   Do not count with `--page-size 1 --max-pages 1`. That command returns one
   record and no total. Do not count by adding `censys aggregate` buckets either:

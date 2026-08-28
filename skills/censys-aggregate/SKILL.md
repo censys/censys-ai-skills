@@ -32,7 +32,7 @@ The query selects the document set; the field is the dotted field path to bucket
 
 | Flag | Alias | Description |
 |---|---|---|
-| `--num-buckets` | `-n` | Number of buckets to return (default: 25, range: 1-2000) |
+| `--num-buckets` | `-n` | Number of buckets to return (default: 25, range: 1-2000; verified on cencli 1.1.3, 2026-08 — lower bound client-side, upper bound server-side 422) |
 | `--count-by-level` | `-l` | Document level to count at, for nested fields (e.g. count at the service level vs. the host level) |
 | `--filter-by-query` | `-f` | Limit aggregation to field values that also match the query (rather than aggregating across all values present on matching documents) |
 | `--collection-id` | `-c` | Aggregate within a specific collection (UUID) |
@@ -89,7 +89,7 @@ Notes on shaping the bucket set:
 - `--num-buckets`/`-n` is a hard cap on returned buckets, not a sample size — if the true cardinality of the field exceeds `-n`, only the top buckets by count are returned. Raise `-n` (up to 2000) if the user wants the long tail.
 - **Do not use a bucket sum as a total.** `jq '[.[].count] | add'` adds only the buckets the server returned. `-n` limits that number, and the default is 25. If the field has more distinct values than `-n`, the sum is lower than the true total. The command gives no warning.
 
-  Measured on one query (`host.services:` pinned to 3 ports and a vendor):
+  Measured on one query (`host.services:` pinned to 3 ports and a vendor; from investigation data, 2026):
 
   | `-n` | Sum of buckets | True total |
   |---|---|---|

@@ -141,7 +141,7 @@ echo "8.8.8.8" | censys censeye --input-file -
 |---|---|---|
 | Non-zero exit (exit code 2) with a format error | `--output-format template` was requested | `template` is not implemented for `censeye`; use `short`, `json`, `yaml`, or `tree` instead |
 | Threat Hunting / entitlement error | The authenticated org doesn't have the Threat Hunting module enabled | Confirm module access with the org owner; no flag combination works around this |
-| `[Invalid Asset ID]` | Input isn't a valid IP | Check for typos, stray whitespace, or a defanged IP that didn't normalize |
+| `[Invalid Asset ID]` (verified on cencli 1.1.3, 2026-08) | Input isn't a valid IP | Check for typos, stray whitespace, or a defanged IP that didn't normalize |
 | Empty result set | Host has no fields with a distinctive-enough footprint, or none fall within the rarity bounds | Widen `--rarity-max`, lower `--rarity-min`, or confirm the host has recent Censys scan data via `censys-view` |
 
 ## Caveats

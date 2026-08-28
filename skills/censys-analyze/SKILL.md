@@ -74,7 +74,7 @@ jq 'group_by(.host.location.country_code) |
 # 5. Extract a services summary for one host
 jq '.[0].services | map({port, protocol, transport_protocol})' data/host_detail.json
 
-# 6. Filter enrichment results by reputation score
+# 6. Filter enrichment results by reputation score (score_level observed on cencli 1.1.3, 2026-08)
 jq '[.[] | select(.reputation?.score_level != "benign")]' data/enriched.json
 
 # 7. NDJSON processing — one object per line, no top-level array
@@ -89,15 +89,10 @@ filter, load the results into SQLite and use its JSON functions (SQLite 3.38+
 required for `json_extract`/`json_each`).
 
 ```bash
-# Create table and bulk-load search results in one transaction
-sqlite3 data/censys.db "CREATE TABLE IF NOT EXISTS hosts (data JSON);"
-jq -c '.[]' data/ssh_hosts.json | {
-  echo "BEGIN TRANSACTION;"
-  while IFS= read -r line; do
-    printf "INSERT INTO hosts VALUES (json('%s'));\n" "$(printf '%s' "$line" | sed "s/'/''/g")"
-  done
-  echo "COMMIT;"
-} | sqlite3 data/censys.db
+# Bulk-load search results using the plugin's loader script
+"${CLAUDE_PLUGIN_ROOT}/scripts/censys-to-sqlite.sh" data/ssh_hosts.json data/censys.db
+# Loads all records in a single transaction; prints row count on completion.
+# Optional third argument sets the table name (default: hosts).
 
 # Count hosts per ASN
 sqlite3 data/censys.db <<'SQL'

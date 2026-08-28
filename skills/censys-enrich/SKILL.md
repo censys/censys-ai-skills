@@ -107,7 +107,7 @@ censys enrich 8.8.8.8,9.9.9.9 --streaming
   (e.g. a CDN or search engine crawler), or part of mass internet-wide scanning
   activity. A GreyNoise "benign" tag is a strong signal to deprioritize.
 - **Reputation** — contains `model_version` and `score_level` (e.g.
-  `benign`). Treat as one signal among several, not a verdict on its own.
+  `benign`) (observed on cencli 1.1.3, 2026-08). Treat as one signal among several, not a verdict on its own.
 - **Network/privacy classification** — residential, datacenter, VPN, proxy, or
   Tor. Datacenter + no legitimate hosting context is more suspicious than
   residential; VPN/proxy/Tor often explain otherwise-odd geolocation or

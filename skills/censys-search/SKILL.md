@@ -106,45 +106,21 @@ For bulk exports, always aggregate first to check population size before spendin
 # Step 1: Check distribution before committing to a full pull
 censys aggregate "<query>" "host.location.country"
 
-# Step 2: Export (all three formats share the same backbone)
-censys search "<query>" --max-pages -1 -S 2>/dev/null | jq <filter>
+# Step 2: Export using the plugin's export script
+"${CLAUDE_PLUGIN_ROOT}/scripts/censys-export.sh" "<query>" ips data/hosts.txt
+"${CLAUDE_PLUGIN_ROOT}/scripts/censys-export.sh" "<query>" ndjson data/hosts.ndjson
+"${CLAUDE_PLUGIN_ROOT}/scripts/censys-export.sh" "<query>" csv data/hosts.csv
 ```
 
-**IPs only** — plain text list:
+The export script uses streaming (`-S`) by default to avoid buffering large
+result sets. Formats:
 
-```bash
-censys search "<query>" --max-pages -1 -S 2>/dev/null | \
-  jq -r '.host.ip' > hosts.txt
-```
+- **`ips`** — plain text, one IP per line
+- **`ndjson`** — one JSON object per line (ip, asn, country, services)
+- **`csv`** — spreadsheet-ready with header row
 
-**Rich NDJSON** — one JSON object per line with host context:
-
-```bash
-censys search "<query>" --max-pages -1 -S 2>/dev/null | \
-  jq -c '{
-    ip: .host.ip,
-    asn: .host.autonomous_system.asn,
-    as_name: .host.autonomous_system.name,
-    country: .host.location.country_code,
-    city: .host.location.city,
-    services: [.host.services[] | {port, protocol, software: [.software[]?.product] | join(",")}]
-  }' > hosts.ndjson
-```
-
-**CSV** — spreadsheet-ready (prepend a header line):
-
-```bash
-echo "ip,asn,as_name,country,city,ports" > hosts.csv
-censys search "<query>" --max-pages -1 -S 2>/dev/null | \
-  jq -r '[
-    .host.ip,
-    (.host.autonomous_system.asn | tostring),
-    .host.autonomous_system.name,
-    .host.location.country_code,
-    .host.location.city,
-    ([.host.services[].port | tostring] | join(";"))
-  ] | @csv' >> hosts.csv
-```
+Without an output file, the script writes to stdout for piping into `jq` or
+other tools.
 
 ### Export caveats
 
@@ -174,22 +150,21 @@ When redirecting `censys search -O json` to a file and parsing it later:
 
 ## Caveats
 
-- `--max-pages -1` fetches up to the API maximum of 100 pages (10,000 results at the default page size) — this can consume significant API credits on broad queries, and returns no warning when capped. Confirm scope with the user (or add tightening conditions) before running an unbounded exhaustive search on a broad query.
+- `--max-pages -1` fetches up to the API maximum of 100 pages (10,000 results at the default page size) (per CLI config docs) — this can consume significant API credits on broad queries, and returns no warning when capped. Confirm scope with the user (or add tightening conditions) before running an unbounded exhaustive search on a broad query.
 - `--page-size` above the platform's per-page maximum will be clamped by the API; there is no benefit to setting it above that ceiling.
 - `--fields` only trims the returned payload — it does not change which records match the query. Filtering must still happen in the CQL query itself or via post-retrieval `jq` filtering.
 - Results are subject to Censys data freshness/indexing lag; a very recent scan may not yet appear in search results.
 - `--collection-id` requires a valid collection UUID that the authenticated identity has access to; an unrecognized or unauthorized UUID returns an error rather than an empty result set.
-- **Run `censys` commands one at a time (cencli < 1.1.3).** On versions before 1.1.3, the CLI's local cache database can produce `failed to set journal_mode WAL: database is locked (261)` when two or more concurrent `censys` processes run. The command exits 0 and writes an empty output file, so the failure is easy to miss. Check that each output file is not empty before you use it. The fix in cencli 1.1.3 (`#82`) serializes concurrent database initialization. On 1.1.3+, parallel invocations have been observed to succeed, though a race cannot be fully excluded.
-- **To count matching hosts, page the query** and count the records:
+- **Run `censys` commands one at a time (cencli < 1.1.3).** On versions before 1.1.3, the CLI's local cache database can produce `failed to set journal_mode WAL: database is locked (261)` when two or more concurrent `censys` processes run. The command exits 0 and writes an empty output file, so the failure is easy to miss. Check that each output file is not empty before you use it. The fix in cencli 1.1.3 (`#82`) serializes concurrent database initialization. On 1.1.3+, parallel invocations have been observed to succeed (verified on cencli 1.1.3, 2026-08), though a race cannot be fully excluded.
+- **To count matching hosts**, use the plugin's count script:
 
   ```bash
-  censys search '<query>' --max-pages -1 --page-size 100 -O json | jq 'length'
+  "${CLAUDE_PLUGIN_ROOT}/scripts/censys-count.sh" '<query>'
   ```
 
-  Note: `--max-pages -1` fetches up to the API maximum of 100 pages. At
-  `--page-size 100` this caps at 10,000 results with no warning. If
-  `jq 'length'` returns exactly 10,000, the true count is higher — report
-  it as a floor, not a total.
+  The script pages the full result set and prints the count. It exits 2 with
+  a warning if the count hits the 10,000-result API ceiling (100 pages × 100
+  per page) — treat that number as a floor, not a total.
 
   Do not add `censys aggregate` buckets to get a total — `-n` limits the bucket list (default 25) and the sum can be far below the true total. See `censys-aggregate`.
 
