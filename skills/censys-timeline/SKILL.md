@@ -103,13 +103,13 @@ Use event types to classify changes:
 censys history 8.8.8.8 --duration 30d -O json > data/timeline.json
 
 # Bounded window for incident investigation
-censys history 8.8.8.8 --start 2025-06-01T00:00:00Z --end 2025-06-15T00:00:00Z -O json
+censys history 8.8.8.8 --start <start-date> --end <end-date> -O json
 
 # Web property history
 censys history example.com:443 --duration 14d -O json
 
 # Certificate observation history (Threat Hunting module required)
-censys history <sha256> --start 2025-01-01T00:00:00Z --end 2025-06-01T00:00:00Z
+censys history <sha256> --start <start-date> --end <end-date>
 
 # Stream events as NDJSON instead of buffering a full array
 censys history 8.8.8.8 --duration 90d -S
@@ -133,8 +133,8 @@ jq '[.[] | select(.service_scanned) | {time: .event_time,
   data/timeline.json
 
 # Compare host state at two points in time (snapshot diff, not history events)
-censys view 1.2.3.4 --at-time 2025-06-01T00:00:00Z -O json > data/before.json
-censys view 1.2.3.4 -O json > data/after.json
+censys view 203.0.113.50 --at-time <past-date> -O json > data/before.json
+censys view 203.0.113.50 -O json > data/after.json
 diff <(jq -S '.[0].services | sort_by(.port)' data/before.json) \
      <(jq -S '.[0].services | sort_by(.port)' data/after.json)
 ```

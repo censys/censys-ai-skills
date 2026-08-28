@@ -75,7 +75,7 @@ censys view platform.censys.io:80
 censys view 8.8.8.8,9.9.9.9
 
 # Historical snapshot of a host at a specific time
-censys view 8.8.8.8 --at-time 2025-09-15T14:30:00Z
+censys view 8.8.8.8 --at-time <YYYY-MM-DDTHH:MM:SSZ>
 
 # Certificate lookup by SHA-256 fingerprint
 censys view 3daf2843a77b6f4e6af43cd9b6f6746053b8c928e056e8a724808db8905a94cf

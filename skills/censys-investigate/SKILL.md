@@ -23,7 +23,7 @@ Fires on explicit multi-command investigation requests — asks that need a
 methodology spanning several Censys commands, not just a single lookup.
 Typical triggers:
 
-- "censys investigate 1.2.3.4"
+- "censys investigate 203.0.113.10"
 - "censys deep dive into this actor's infrastructure"
 - "trace this infrastructure with censys"
 - "hunt for related infrastructure"

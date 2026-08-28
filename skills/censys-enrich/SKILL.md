@@ -11,7 +11,7 @@ version: 0.1.0
 Use this skill when the user has one or more IP addresses and wants a quick answer
 to "is this IP interesting?" rather than a full host document. Typical asks:
 
-- "censys enrich 104.168.107.43"
+- "censys enrich 203.0.113.42"
 - "censys triage this list of IPs"
 - "censys bulk enrich these addresses from a feed"
 - "censys SOC lookup on 8.8.8.8"
@@ -34,13 +34,13 @@ Accepts:
 
 | Input form | Example |
 |---|---|
-| Single IP | `censys enrich 104.168.107.43` |
-| Comma-separated list | `censys enrich 104.168.107.43,8.8.8.8` |
+| Single IP | `censys enrich 203.0.113.42` |
+| Comma-separated list | `censys enrich 203.0.113.42,8.8.8.8` |
 | `--input-file <path>` | `censys enrich --input-file ips.txt` |
 | stdin (via `--input-file -`) | `cat ips.txt \| censys enrich --input-file -` |
 
 Defanged IPs are accepted and normalized automatically, e.g. `104[.]168[.]107[.]43`
-→ `104.168.107.43`.
+→ `203.0.113.42`.
 
 ### Requirements
 
@@ -79,10 +79,10 @@ does not accept `--org-id` — the org is fixed at login time.
 
 ```bash
 # Single IP triage
-censys enrich 104.168.107.43
+censys enrich 203.0.113.42
 
 # Multiple IPs in one call (comma-separated)
-censys enrich 104.168.107.43,8.8.8.8
+censys enrich 203.0.113.42,8.8.8.8
 
 # Bulk enrichment from a file (one IP per line)
 censys enrich --input-file ips.txt

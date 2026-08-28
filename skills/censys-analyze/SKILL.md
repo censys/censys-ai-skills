@@ -43,7 +43,7 @@ saved file before reaching for the CLI again.
 censys search "host.services.protocol=SSH" --max-pages 5 -O json > data/ssh_hosts.json
 censys view 8.8.8.8 -O json > data/host_detail.json
 censys enrich --input-file ips.txt -O json > data/enriched.json
-censys history 1.2.3.4 --duration 30d -O json > data/timeline.json
+censys history 203.0.113.50 --duration 30d -O json > data/timeline.json
 
 # NDJSON streaming for large result sets (one JSON object per line)
 censys search "host.services.port=443" --max-pages -1 --streaming > data/https_hosts.ndjson
@@ -137,8 +137,9 @@ for chunk in data/cert_chunk_*; do
   censys view "$CERTS" -O json >> data/all_certs.json
 done
 
-# Certs expiring soon
-jq '[.[] | select(.parsed.validity_period.not_after < "2025-09-01T00:00:00Z") |
+# Certs expiring within 90 days (adjust the date to your current window)
+jq --arg cutoff "$(date -u -v+90d +%Y-%m-%dT00:00:00Z 2>/dev/null || date -u -d '+90 days' +%Y-%m-%dT00:00:00Z)" \
+'[.[] | select(.parsed.validity_period.not_after < $cutoff) |
      {cn: .parsed.subject.common_name[0], expires: .parsed.validity_period.not_after,
       fp: .fingerprint_sha256}]' data/all_certs.json
 
@@ -159,7 +160,7 @@ comm -12 \
   <(jq -r '[.[] | select(.reputation?.score_level != "benign")] | .[].ip' data/enriched.json | sort)
 
 # Correlate censeye pivots with a fresh targeted search
-censys censeye 1.2.3.4 -O json > data/pivots.json
+censys censeye 203.0.113.50 -O json > data/pivots.json
 jq -r '.[] | select(.interesting == true) | .query' data/pivots.json | while read -r query; do
   echo "=== Pivot: $query ==="
   censys search "$query" -n 5 -O json | jq '.[].host.ip'
