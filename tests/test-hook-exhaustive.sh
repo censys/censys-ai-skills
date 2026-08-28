@@ -5,6 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 HOOK="$REPO_DIR/hooks/check-exhaustive-search.sh"
 
+# shellcheck source=helpers.sh
 source "$SCRIPT_DIR/helpers.sh"
 
 run_hook() {

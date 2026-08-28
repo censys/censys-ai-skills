@@ -9,6 +9,7 @@ TMPDIR="${TMPDIR:-/tmp}"
 TEST_DIR=$(mktemp -d "$TMPDIR/censys-export-test.XXXXXX")
 trap 'rm -rf "$TEST_DIR"' EXIT
 
+# shellcheck source=helpers.sh
 source "$SCRIPT_DIR/helpers.sh"
 
 # Mock censys that emits NDJSON (simulates -S streaming)

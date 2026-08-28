@@ -9,6 +9,7 @@ TMPDIR="${TMPDIR:-/tmp}"
 TEST_DIR=$(mktemp -d "$TMPDIR/censys-count-test.XXXXXX")
 trap 'rm -rf "$TEST_DIR"' EXIT
 
+# shellcheck source=helpers.sh
 source "$SCRIPT_DIR/helpers.sh"
 
 # Create a mock censys binary that returns fixture data
