@@ -1,10 +1,12 @@
-# Censys Skills Plugin
+# Censys AI Skills
 
-A [Claude Code](https://docs.anthropic.com/en/docs/claude-code) plugin for
-working with [Censys](https://censys.io) internet intelligence data via the
-[Censys CLI](https://github.com/Censys/cencli).
+AI-assisted [Censys](https://censys.io) internet intelligence via the
+[Censys CLI](https://github.com/Censys/cencli). Ships as a
+[Claude Code](https://docs.anthropic.com/en/docs/claude-code) plugin and
+works with other AI coding tools — see
+[Usage with other AI tools](#usage-with-other-ai-tools).
 
-## Install
+## Install (Claude Code)
 
 ```bash
 claude plugin marketplace add censys/censys-ai-skills
@@ -45,6 +47,63 @@ censys config auth add     # PAT (non-interactive)
 
 - For enrich: `censys config org-id`
 - For censeye / cert history: Threat Hunting module access required
+
+## Usage with other AI tools
+
+The skills are standalone markdown files that work with any AI coding
+assistant that supports custom instructions. The Claude Code plugin
+system handles skill loading and path resolution automatically; other
+tools require manual setup.
+
+### Cursor / Windsurf / other AI editors
+
+Clone the repo and reference the skills from your project instructions:
+
+```bash
+git clone https://github.com/censys/censys-ai-skills.git
+```
+
+Then include individual skill files in your editor's instruction system:
+
+| Editor | Instruction file | Include syntax |
+|---|---|---|
+| Cursor | `.cursorrules` or `.cursor/rules/*.md` | Paste skill content or reference the file path |
+| Windsurf | `.windsurfrules` | Paste skill content |
+| Cline | `.clinerules` | Paste skill content |
+
+Pick the skills relevant to your workflow. For most users:
+- `skills/censys-search/SKILL.md` and `skills/censys-view/SKILL.md` for basic queries
+- `skills/censys-cql/SKILL.md` for query syntax reference
+- `skills/censys-investigate/SKILL.md` for full investigation methodology
+
+### Codex / agents without a plugin system
+
+Clone the repo into your project or reference it from your agent's
+system prompt. Each skill folder (`skills/<name>/`) is self-contained
+with its own `SKILL.md` and `references/` directory.
+
+```bash
+# Example: include in an AGENTS.md or system prompt
+@censys-ai-skills/skills/censys-search/SKILL.md
+@censys-ai-skills/skills/censys-cql/SKILL.md
+```
+
+### Notes for non-Claude Code harnesses
+
+- **Path variables**: Skills reference files using `${CLAUDE_SKILL_DIR}`
+  and `${CLAUDE_PLUGIN_ROOT}`. These are Claude Code-specific. On other
+  harnesses, resolve them relative to the skill folder and repo root
+  respectively. The model can typically infer the correct paths from
+  context.
+- **Scripts**: The `scripts/` directory contains shell helpers
+  (`censys-count.sh`, `censys-export.sh`, `censys-to-sqlite.sh`).
+  These work on any harness with bash access — reference them by their
+  path relative to the repo root.
+- **Hooks**: The `hooks/` directory provides advisory warnings for
+  Claude Code's hook system. Other harnesses can ignore this directory.
+- **Skill content**: The methodology, CQL syntax, CLI flags, and
+  operational caveats in each skill are plain markdown. They work as
+  reference material regardless of the harness.
 
 ## What is Censys?
 
