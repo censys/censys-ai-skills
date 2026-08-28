@@ -47,17 +47,16 @@ MOCK
 # Create a mock that returns N identical records (for ceiling test)
 mock_censys_n() {
   local n="$1"
-  cat > "$TEST_DIR/censys" <<'MOCK'
+  cat > "$TEST_DIR/censys" <<MOCK
 #!/usr/bin/env bash
-n=PLACEHOLDER_N
+n=$n
 printf '['
 for ((i=0; i<n; i++)); do
-  [[ $i -gt 0 ]] && printf ','
-  printf '{"host":{"ip":"203.0.113.%d"}}' $((i % 256))
+  [[ \$i -gt 0 ]] && printf ','
+  printf '{"host":{"ip":"203.0.113.%d"}}' \$((i % 256))
 done
 printf ']'
 MOCK
-  sed -i '' "s/PLACEHOLDER_N/$n/" "$TEST_DIR/censys"
   chmod +x "$TEST_DIR/censys"
 }
 
