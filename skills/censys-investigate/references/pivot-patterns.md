@@ -47,4 +47,4 @@ membership efficiently:
    suggests the cluster definition is correct and the operator provisions from
    a template.
 
-Reference `censys-cql` for field paths, `censys-search` for CLI execution.
+Reference `censys-cenql` for field paths, `censys-search` for CLI execution.

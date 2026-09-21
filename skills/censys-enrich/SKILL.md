@@ -144,7 +144,7 @@ only for the IPs that warrant a deeper look.
 
 ## Caveats
 
-- `enrich` only accepts IP addresses — no hostnames, CQL queries, or certificate
+- `enrich` only accepts IP addresses — no hostnames, CenQL queries, or certificate
   fingerprints. Route those to `censys-view` or `censys-search` instead.
 - Org ID is mandatory for every `enrich` call, even single-IP lookups — this
   differs from subcommands where org scoping can be inferred from a PAT.

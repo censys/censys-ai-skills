@@ -55,7 +55,7 @@ process a line at a time with `jq -c`.
 
 ## jq recipes
 
-CQL search fields and JSON output paths differ for some signals (e.g., cert fingerprint is `host.services.tls.certificates.leaf_fp_sha_256` in CQL but `.tls.fingerprint_sha256` in JSON output). See `censys-cql` for the full mapping table.
+CenQL search fields and JSON output paths differ for some signals (e.g., cert fingerprint is `host.services.tls.certificates.leaf_fp_sha_256` in CenQL but `.tls.fingerprint_sha256` in JSON output). See `censys-cenql` for the full mapping table.
 
 Validate first: `jq '.' data/ssh_hosts.json > /dev/null` — a syntax error here means
 malformed/truncated JSON, not a bad filter.

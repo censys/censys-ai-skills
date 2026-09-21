@@ -121,7 +121,7 @@ Skip if no domains. Document DNS resolution history, flag previous IPs.
 ### Step 5 — Indicator triage
 
 Extract all pivotable indicators from steps 2–4. Categorize using
-`censys-cql`'s known-noise section:
+`censys-cenql`'s known-noise section:
 
 - **Unique** — body hashes, banner hashes, cert fingerprints, build artifact
   strings, custom ETags
@@ -182,7 +182,7 @@ of the ASN returned 19 hosts with the identical banner hash. 13 were bare
 Windows/RDP VPS with no relation to the cluster. Port 17500 was the provider's
 own service.
 
-**Dark infrastructure caveat:** CQL endpoint fields (e.g., Cobalt Strike
+**Dark infrastructure caveat:** CenQL endpoint fields (e.g., Cobalt Strike
 watermark/public key) only match hosts with **currently active** listeners.
 If a cluster's services are offline, these searches return 0 — which means
 "not currently visible," not "unique to target." Verify the field is indexed
@@ -240,5 +240,5 @@ Tactical pivot techniques and bulk verification procedures are in
 - **censys-censeye** — automated rarity-bounded pivot discovery as alternative to manual indicator triage.
 - **censys-enrich** — fast bulk triage of candidate lists from pivot results.
 - **censys-timeline** — temporal analysis via `censys history` for baseline Step 3 and deep-dive (Tree 4).
-- **censys-cql** — CQL field paths, query syntax, known-noise indicators. Consulted during indicator triage (baseline Step 5) and pivot construction.
+- **censys-cenql** — CenQL field paths, query syntax, known-noise indicators. Consulted during indicator triage (baseline Step 5) and pivot construction.
 - **censys-analyze** — post-retrieval jq/SQLite analysis of saved pivot results.

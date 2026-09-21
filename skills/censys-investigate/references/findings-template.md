@@ -72,7 +72,7 @@ the investigation is marked complete.
 
 ### Unique
 
-| Indicator Type | Value | CQL Query | Hits | Result |
+| Indicator Type | Value | CenQL Query | Hits | Result |
 |---|---|---|---|---|
 
 ### Broad / Noise

@@ -16,14 +16,14 @@ Use this skill whenever the user wants bucketed counts of a field's values acros
 - "censys count by country for port 443"
 - "censys distribution of protocols on port 22"
 
-If the user wants the actual matching records (not counts), that's `censys-search`. If the user has a specific IP, cert SHA-256, or FQDN and wants a single-record lookup, that's `censys-view`. If the user needs help writing or debugging the CQL query itself, defer to `censys-cql`.
+If the user wants the actual matching records (not counts), that's `censys-search`. If the user has a specific IP, cert SHA-256, or FQDN and wants a single-record lookup, that's `censys-view`. If the user needs help writing or debugging the CenQL query itself, defer to `censys-cenql`.
 
 ## Invocation
 
 Base form:
 
 ```bash
-censys aggregate "<CQL query>" "<field>" [flags]
+censys aggregate "<CenQL query>" "<field>" [flags]
 ```
 
 The query selects the document set; the field is the dotted field path to bucket on (e.g. `host.services.port`, `host.location.country`).
@@ -103,8 +103,8 @@ Notes on shaping the bucket set:
 ## Error handling
 
 - **`-O template` requested**: aggregate does not support template output and exits with code 2. Fall back to `-O json` and post-process with `jq`, or use `-O short`/`-O tree` for direct review.
-- **Invalid CQL syntax**: the CLI returns an error message that includes the malformed part of the query. Check `censys-cql` for field paths, operators, and syntax reference before retrying.
-- **Invalid field path**: aggregating on a field that doesn't exist for the queried document type returns an error or an empty bucket set — verify the field path (e.g. `host.services.port` vs. `host.location.country`) against `censys-cql`'s field reference.
+- **Invalid CenQL syntax**: the CLI returns an error message that includes the malformed part of the query. Check `censys-cenql` for field paths, operators, and syntax reference before retrying.
+- **Invalid field path**: aggregating on a field that doesn't exist for the queried document type returns an error or an empty bucket set — verify the field path (e.g. `host.services.port` vs. `host.location.country`) against `censys-cenql`'s field reference.
 - **`--num-buckets` out of range**: values outside 1-2000 are rejected; clamp the request before retrying.
 - **Auth expired / unauthorized**: run `censys auth login` to re-authenticate (OAuth), or verify the PAT is still valid via `censys config auth add` if using a token.
 - **Empty results with a PAT and multi-org access**: pass `--org-id`/`-o` explicitly — the query may be scoping to the wrong (or no) organization.
@@ -118,7 +118,7 @@ Notes on shaping the bucket set:
 
 ## Cross-references
 
-- **censys-cql** — CQL syntax, field paths, operators, and query cookbook. Defer here for help constructing the query string or identifying the correct field path to aggregate on.
+- **censys-cenql** — CenQL syntax, field paths, operators, and query cookbook. Defer here for help constructing the query string or identifying the correct field path to aggregate on.
 - **censys-search** — returns raw matching records instead of bucketed counts.
 - **censys-view** — single-record lookup by IP/SHA-256/FQDN (not a query or aggregation).
 - **censys-analyze** — deeper post-retrieval analysis: jq recipes, SQLite, batch cert analysis, cross-referencing.
