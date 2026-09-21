@@ -20,7 +20,7 @@ pivot points for finding related infrastructure. Typical asks:
 
 `censeye` inspects a host's fields (certificates, JARM/JA3 fingerprints, banners,
 software, favicon hashes, etc.), counts how many other hosts on the internet share
-each one, and returns candidate CQL queries ranked by that shared-host count. Low
+each one, and returns candidate CenQL queries ranked by that shared-host count. Low
 counts are distinctive (good pivots); very high counts are generic noise (e.g.
 common software versions) and get filtered out by the rarity bounds.
 
@@ -102,7 +102,7 @@ echo "8.8.8.8" | censys censeye --input-file -
 ```
 
 - `count` — number of hosts across Censys that share this attribute.
-- `query` — a ready-to-run CQL pivot query for that attribute.
+- `query` — a ready-to-run CenQL pivot query for that attribute.
 - `interesting` — `true` when `count` falls within `[--rarity-min, --rarity-max]`.
 - `search_url` — Platform search link for the query; only present when
   `--include-url` is passed.
@@ -168,5 +168,5 @@ echo "8.8.8.8" | censys censeye --input-file -
   question is "how has this changed" rather than "what else is related."
 - **censys-investigate** — broader investigation methodology that chains
   censeye pivots with search and analysis into a full workflow.
-- **censys-cql** — syntax reference for hand-editing or extending a pivot query
+- **censys-cenql** — syntax reference for hand-editing or extending a pivot query
   returned by censeye.

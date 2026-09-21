@@ -1,19 +1,21 @@
 ---
-name: censys-cql
-description: Use when the user needs help with CQL syntax, censys query syntax, how to write a censys query, what censys fields are available, or censys query help — field paths, operators, quoting/escaping rules, or example queries for hosts, certificates, and web properties. Trigger phrases include "CQL syntax," "censys query syntax," "how do I write a censys query," "what censys fields are available," and "censys query help." This is a reference skill, not a CLI wrapper — defer to censys-search, censys-aggregate, or censys-view to actually execute the query once it's constructed.
+name: censys-cenql
+description: Use when the user needs help with CenQL syntax, censys query syntax, how to write a censys query, what censys fields are available, or censys query help — field paths, operators, quoting/escaping rules, or example queries for hosts, certificates, and web properties. Trigger phrases include "CenQL syntax," "censys query syntax," "how do I write a censys query," "what censys fields are available," and "censys query help." Also fires when the user writes "CQL," a frequent misspelling of CenQL. This is a reference skill, not a CLI wrapper — defer to censys-search, censys-aggregate, or censys-view to actually execute the query once it's constructed.
 version: 0.3.0
 ---
 
-# Censys CQL Reference
+# Censys CenQL Reference
 
 ## When to use
 
-Use this skill whenever the user needs help constructing, debugging, or understanding a Censys Query Language (CQL) query — field paths, operators, grouping, quoting, or example patterns. This covers requests like:
+Use this skill whenever the user needs help constructing, debugging, or understanding a Censys Query Language (CenQL) query — field paths, operators, grouping, quoting, or example patterns. This covers requests like:
 
-- "What's the CQL syntax for matching a port?"
+- "What's the CenQL syntax for matching a port?"
 - "How do I write a censys query for SSH hosts not on 22?"
 - "What censys fields are available for TLS certificates?"
 - "Why is my censys query failing to parse?"
+
+Users sometimes write "CQL." This is a misspelling of CenQL. Answer the question, and use the name CenQL in the reply.
 
 This skill is a reference only — it does not execute queries. Once the query string is built, hand it to `censys-search` (raw search), `censys-aggregate` (counts/breakdowns), or `censys-view` (single-record lookup) to actually run it.
 
@@ -27,13 +29,13 @@ This skill is a reference only — it does not execute queries. Once the query s
   - `not` — negation
 - **Grouping**: use parentheses to scope compound expressions, especially when combining `and`/`or` across nested fields: `host.services: (protocol=SSH and port: 22)`.
 - **CIDR notation**: IP range queries use CIDR blocks quoted as strings: `host.ip: '198.51.100.0/24'`.
-- **Quoting**: wrap any value containing spaces, colons, slashes, or CQL keywords in single quotes: `cert.parsed.issuer.organization: 'Let''s Encrypt'`.
+- **Quoting**: wrap any value containing spaces, colons, slashes, or CenQL keywords in single quotes: `cert.parsed.issuer.organization: 'Let''s Encrypt'`.
 - **Nested field grouping**: `host.services: (...)` scopes all conditions inside the parens to the *same* service entry on the host — critical when a host has multiple services and you don't want conditions matching across unrelated services.
 
 ## Host fields
 
 - **Network**: `host.ip`, `host.services.port`, `host.services.protocol`, `host.services.transport_protocol`
-- **Banners/headers**: `host.services.banner`, `host.services.banner_hash_sha256`, `host.services.http.response.headers.*`. Note: for HTTP body, title, and favicon content, use the Endpoint fields below — `host.services.http.response.body` does NOT work in CQL v2.
+- **Banners/headers**: `host.services.banner`, `host.services.banner_hash_sha256`, `host.services.http.response.headers.*`. Note: for HTTP body, title, and favicon content, use the Endpoint fields below — `host.services.http.response.body` does NOT work in CenQL v2.
 - **TLS/certs**: `host.services.tls.certificates.leaf_fp_sha_256`, `host.services.tls.certificates.leaf_data.*`
 - **SSH**: `host.services.ssh.server_host_key.fingerprint_sha256`
 - **Fingerprints**: `host.services.jarm`, `host.services.tls.ja3s`
@@ -136,11 +138,11 @@ When it matters: on string fields, `:` can match substrings (`host.services.soft
 
 Rule of thumb: use `=` when you know the exact value you're looking for; use `:` when exploring or when the value might appear as a substring of a longer string.
 
-## CQL field → JSON output path mapping
+## CenQL field → JSON output path mapping
 
-CQL search fields do NOT always match the JSON paths in `censys view` / `censys search` output. Use the CQL column for queries, the jq column for extracting from results:
+CenQL search fields do NOT always match the JSON paths in `censys view` / `censys search` output. Use the CenQL column for queries, the jq column for extracting from results:
 
-| Signal | CQL search field | jq extraction path |
+| Signal | CenQL search field | jq extraction path |
 |---|---|---|
 | Cert fingerprint | `host.services.tls.certificates.leaf_fp_sha_256` | `.services[].tls.fingerprint_sha256` or `.services[].cert.fingerprint_sha256` |
 | JARM fingerprint | `host.services.jarm` | `.services[].jarm.fingerprint` |
@@ -159,13 +161,13 @@ CQL search fields do NOT always match the JSON paths in `censys view` / `censys 
 ## Escaping rules
 
 - Values containing spaces, colons, slashes, hyphens, or other special characters must be wrapped in single quotes or double quotes: `'value with spaces'`, `"remote-access"`. Hyphens are especially treacherous — `labels: remote-access` fails because the parser reads `-access` as negation.
-- CQL keywords (`and`, `or`, `not`) appearing *as literal values* (not as operators) must be quoted, or the parser will treat them as boolean operators.
-- Single quotes inside a quoted value are escaped by doubling them in CQL itself (`'Let''s Encrypt'`); when that same string is passed through a shell command line, the shell's own quoting also needs escaping, which produces the doubled pattern `'\''` seen in [cookbook](${CLAUDE_SKILL_DIR}/references/cookbook.md) example 6 — one layer for the shell, one for CQL.
+- CenQL keywords (`and`, `or`, `not`) appearing *as literal values* (not as operators) must be quoted, or the parser will treat them as boolean operators.
+- Single quotes inside a quoted value are escaped by doubling them in CenQL itself (`'Let''s Encrypt'`); when that same string is passed through a shell command line, the shell's own quoting also needs escaping, which produces the doubled pattern `'\''` seen in [cookbook](${CLAUDE_SKILL_DIR}/references/cookbook.md) example 6 — one layer for the shell, one for CenQL.
 - When in doubt, quote the value. Quoting an already-safe token (e.g., a bare number or single word) is harmless; failing to quote a token that needs it causes a parse error or a silently wrong match.
 
 ## Gotchas
 
-1. **`host.` prefix required in CLI.** CQL v2 via the CLI requires `host.` on all
+1. **`host.` prefix required in CLI.** CenQL v2 via the CLI requires `host.` on all
    host field paths. The Censys web UI does not — queries that work in the browser
    will fail with a 422 on the CLI.
 
@@ -193,8 +195,8 @@ For known-noise indicators to exclude during triage, see [${CLAUDE_SKILL_DIR}/re
 
 ## Cross-references
 
-- **censys-search** — execute a constructed CQL query and return matching raw records.
-- **censys-aggregate** — execute a CQL query and return counts/breakdowns by field instead of raw records.
-- **censys-view** — single-record lookup by IP/SHA-256/FQDN; does not take a CQL query.
-- **censys-censeye** — pivot analysis with rarity bounds, useful once a CQL query surfaces an interesting field value worth exploring further.
-- **censys-investigate** — investigation methodology and multi-step pivoting patterns that build on CQL queries.
+- **censys-search** — execute a constructed CenQL query and return matching raw records.
+- **censys-aggregate** — execute a CenQL query and return counts/breakdowns by field instead of raw records.
+- **censys-view** — single-record lookup by IP/SHA-256/FQDN; does not take a CenQL query.
+- **censys-censeye** — pivot analysis with rarity bounds, useful once a CenQL query surfaces an interesting field value worth exploring further.
+- **censys-investigate** — investigation methodology and multi-step pivoting patterns that build on CenQL queries.

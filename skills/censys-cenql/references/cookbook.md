@@ -1,7 +1,7 @@
-# CQL Query Cookbook
+# CenQL Query Cookbook
 
-Copy-paste CQL examples for common query patterns. See the parent skill
-(`censys-cql`) for field paths, operators, and syntax fundamentals.
+Copy-paste CenQL examples for common query patterns. See the parent skill
+(`censys-cenql`) for field paths, operators, and syntax fundamentals.
 
 ```bash
 # 1. SSH hosts on the standard port

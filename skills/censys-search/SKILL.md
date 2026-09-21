@@ -1,6 +1,6 @@
 ---
 name: censys-search
-description: Use when the user wants to run a censys search, censys search for hosts or certificates, search censys for hosts/certs/web properties, find censys hosts with a given condition, run a censys query for hosts, or search for certificates on censys using CQL. Wraps the `censys search` CLI subcommand. Trigger phrases include "censys search," "search censys for," "find censys hosts with," "censys query for hosts," and "search for certificates on censys." Do not use for viewing a single known host/cert/domain by identifier (see censys-view) or for aggregating/counting by field (see censys-aggregate).
+description: Use when the user wants to run a censys search, censys search for hosts or certificates, search censys for hosts/certs/web properties, find censys hosts with a given condition, run a censys query for hosts, or search for certificates on censys using CenQL. Wraps the `censys search` CLI subcommand. Trigger phrases include "censys search," "search censys for," "find censys hosts with," "censys query for hosts," and "search for certificates on censys." Do not use for viewing a single known host/cert/domain by identifier (see censys-view) or for aggregating/counting by field (see censys-aggregate).
 version: 0.1.0
 ---
 
@@ -8,21 +8,21 @@ version: 0.1.0
 
 ## When to use
 
-Use this skill whenever the user wants to run a full-text or structured Censys Query Language (CQL) query against Censys host, certificate, or web-property data via the `censys search` CLI command. This covers requests like:
+Use this skill whenever the user wants to run a full-text or structured Censys Query Language (CenQL) query against Censys host, certificate, or web-property data via the `censys search` CLI command. This covers requests like:
 
 - "censys search for SSH hosts not on port 22"
 - "search censys for certificates matching censys.com"
 - "find censys hosts with port 443 open in Germany"
 - "censys query for hosts running HTTP"
 
-If the user already has a specific IP, cert SHA-256, or FQDN and wants a single-record lookup (not a query), that's `censys-view`, not this skill. If the user wants counts/breakdowns by field value rather than raw matching records, that's `censys-aggregate`. If the user needs help writing or debugging the CQL query itself, defer to `censys-cql`.
+If the user already has a specific IP, cert SHA-256, or FQDN and wants a single-record lookup (not a query), that's `censys-view`, not this skill. If the user wants counts/breakdowns by field value rather than raw matching records, that's `censys-aggregate`. If the user needs help writing or debugging the CenQL query itself, defer to `censys-cenql`.
 
 ## Invocation
 
 Base form:
 
 ```bash
-censys search "<CQL query>" [flags]
+censys search "<CenQL query>" [flags]
 ```
 
 ### Search-specific flags
@@ -65,7 +65,7 @@ censys search --page-size 50 --max-pages 5 "cert.names=censys.com"
 
 ## Post-retrieval filtering
 
-Once results are retrieved, use `jq` for filtering, projecting, and counting rather than trying to encode every condition in CQL:
+Once results are retrieved, use `jq` for filtering, projecting, and counting rather than trying to encode every condition in CenQL:
 
 ```bash
 # Extract specific fields from JSON output
@@ -114,12 +114,12 @@ other tools.
 
 ### Export caveats
 
-- **`software.product` values are lowercase** — `software.product="AnyDesk"` silently returns nothing; use `software.product: "AnyDesk"` (`:` is case-insensitive) or `software.product="anydesk"`. See `censys-cql` for `=` vs `:` guidance.
+- **`software.product` values are lowercase** — `software.product="AnyDesk"` silently returns nothing; use `software.product: "AnyDesk"` (`:` is case-insensitive) or `software.product="anydesk"`. See `censys-cenql` for `=` vs `:` guidance.
 - **`2>/dev/null`** suppresses the status line (e.g. `200 (OK) - 1.2s`) that the CLI writes to stderr — without it, the status text can pollute piped output.
 
 ## Error handling
 
-- **Invalid CQL syntax**: the CLI returns an error message that includes the malformed part of the query. Check `censys-cql` for field paths, operators, and syntax reference before retrying.
+- **Invalid CenQL syntax**: the CLI returns an error message that includes the malformed part of the query. Check `censys-cenql` for field paths, operators, and syntax reference before retrying.
 - **Auth expired / unauthorized**: run `censys auth login` to re-authenticate (OAuth), or verify the PAT is still valid via `censys config auth add` if using a token.
 - **Rate limited**: back off and retry after a delay. Check remaining credits with `censys credits` before issuing another large/exhaustive query.
 - **Empty results with a PAT and multi-org access**: pass `--org-id`/`-o` explicitly — the query may be scoping to the wrong (or no) organization.
@@ -142,7 +142,7 @@ When redirecting `censys search -O json` to a file and parsing it later:
 
 - `--max-pages -1` fetches up to the API maximum of 100 pages (10,000 results at the default page size) (per CLI config docs) — this can consume significant API credits on broad queries, and returns no warning when capped. Confirm scope with the user (or add tightening conditions) before running an unbounded exhaustive search on a broad query.
 - `--page-size` above the platform's per-page maximum will be clamped by the API; there is no benefit to setting it above that ceiling.
-- `--fields` only trims the returned payload — it does not change which records match the query. Filtering must still happen in the CQL query itself or via post-retrieval `jq` filtering.
+- `--fields` only trims the returned payload — it does not change which records match the query. Filtering must still happen in the CenQL query itself or via post-retrieval `jq` filtering.
 - Results are subject to Censys data freshness/indexing lag; a very recent scan may not yet appear in search results.
 - `--collection-id` requires a valid collection UUID that the authenticated identity has access to; an unrecognized or unauthorized UUID returns an error rather than an empty result set.
 - **Run `censys` commands one at a time (cencli < 1.1.3).** On versions before 1.1.3, the CLI's local cache database can produce `failed to set journal_mode WAL: database is locked (261)` when two or more concurrent `censys` processes run. The command exits 0 and writes an empty output file, so the failure is easy to miss. Check that each output file is not empty before you use it. The fix in cencli 1.1.3 (`#82`) serializes concurrent database initialization. On 1.1.3+, parallel invocations have been observed to succeed (verified on cencli 1.1.3, 2026-08), though a race cannot be fully excluded.
@@ -175,7 +175,7 @@ Create and update take the same JSON body: `{"name": ..., "description": ..., "q
 
 ```bash
 # create
-jq -n --arg n "My collection" --arg d "What it tracks" --arg q '<CQL>' \
+jq -n --arg n "My collection" --arg d "What it tracks" --arg q '<CenQL>' \
   '{name:$n, description:$d, query:$q}' > /tmp/c.json
 curl -sS -X POST -H "Authorization: Bearer $CENSYS_PLATFORM_TOKEN" \
   -H "Content-Type: application/json" --data @/tmp/c.json \
@@ -185,7 +185,7 @@ curl -sS -X POST -H "Authorization: Bearer $CENSYS_PLATFORM_TOKEN" \
 Notes:
 
 - **`PUT` is the update verb.** `PATCH` and `POST` against `/v3/collections/<id>` both return HTTP 405.
-- Build the JSON body with `jq -n --arg`, not a shell heredoc. CQL queries contain double quotes and backslash escapes that break under manual shell quoting.
+- Build the JSON body with `jq -n --arg`, not a shell heredoc. CenQL queries contain double quotes and backslash escapes that break under manual shell quoting.
 - **The list endpoint paginates.** It returns 100 collections per page plus `result.next_page_token`. Loop on that token until it is empty. A new collection does not always appear on page 1, so do not conclude that creation failed after checking one page.
 - After a create or an update, `status` is `populating` and `total_assets` is `0`. The status becomes `active` and the count settles after a short delay. An update sets `status_reason` to `query_changed`.
 - Verify membership with a collection-scoped search: `censys search -c <id> '<broad query>' --max-pages -1 -O json | jq 'length'`.
@@ -193,7 +193,7 @@ Notes:
 
 ## Cross-references
 
-- **censys-cql** — CQL syntax, field paths, operators, and query cookbook. Defer here for help constructing or debugging the query string itself.
+- **censys-cenql** — CenQL syntax, field paths, operators, and query cookbook. Defer here for help constructing or debugging the query string itself.
 - **censys-view** — single-record lookup by IP/SHA-256/FQDN (not a query).
 - **censys-aggregate** — aggregate/count results by field instead of returning raw records.
 - **censys-analyze** — deeper post-retrieval analysis: jq recipes, SQLite, batch cert analysis, cross-referencing.

@@ -1,6 +1,6 @@
 ---
-name: CQL endpoint field guidance
-tags: [cql, correctness]
+name: CenQL endpoint field guidance
+tags: [cenql, correctness]
 plugins: ["../.."]
 runs: 3
 max_turns: 5

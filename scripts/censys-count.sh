@@ -9,7 +9,7 @@ usage() {
   cat >&2 <<EOF
 Usage: censys-count <query> [--page-size N]
 
-Count hosts matching a CQL query via censys search.
+Count hosts matching a CenQL query via censys search.
 
 The Censys API returns at most $MAX_PAGES pages. At page-size $PAGE_SIZE
 that ceiling is $CEILING results — returned with no warning. This script

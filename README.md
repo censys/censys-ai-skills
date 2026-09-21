@@ -73,7 +73,7 @@ Then include individual skill files in your editor's instruction system:
 
 Pick the skills relevant to your workflow. For most users:
 - `skills/censys-search/SKILL.md` and `skills/censys-view/SKILL.md` for basic queries
-- `skills/censys-cql/SKILL.md` for query syntax reference
+- `skills/censys-cenql/SKILL.md` for query syntax reference
 - `skills/censys-investigate/SKILL.md` for full investigation methodology
 
 ### Codex / agents without a plugin system
@@ -85,7 +85,7 @@ with its own `SKILL.md` and `references/` directory.
 ```bash
 # Example: include in an AGENTS.md or system prompt
 @censys-ai-skills/skills/censys-search/SKILL.md
-@censys-ai-skills/skills/censys-cql/SKILL.md
+@censys-ai-skills/skills/censys-cenql/SKILL.md
 ```
 
 ### Notes for non-Claude Code harnesses
@@ -101,7 +101,7 @@ with its own `SKILL.md` and `references/` directory.
   path relative to the repo root.
 - **Hooks**: The `hooks/` directory provides advisory warnings for
   Claude Code's hook system. Other harnesses can ignore this directory.
-- **Skill content**: The methodology, CQL syntax, CLI flags, and
+- **Skill content**: The methodology, CenQL syntax, CLI flags, and
   operational caveats in each skill are plain markdown. They work as
   reference material regardless of the harness.
 
@@ -123,18 +123,18 @@ request. Skills fall into three layers:
 | Layer | Skills | Purpose |
 |---|---|---|
 | **Command wrappers** | censys-search, censys-view, censys-aggregate, censys-enrich, censys-censeye, censys-timeline | Translate a user request into the right CLI command, flags, and output handling. One skill per data-retrieval subcommand. |
-| **Reference** | censys-cql | Query language syntax, field paths, operators, known noise. Consulted by other skills when constructing queries — not a CLI wrapper itself. |
+| **Reference** | censys-cenql | Query language syntax, field paths, operators, known noise. Consulted by other skills when constructing queries — not a CLI wrapper itself. |
 | **Methodology** | censys-investigate, censys-analyze | Multi-step workflows that orchestrate the command skills. `censys-investigate` runs a baseline collection phase then branches through decision trees; `censys-analyze` handles post-retrieval jq/SQLite analysis. |
 
 Skills reference each other via cross-reference sections — a methodology
 skill like `censys-investigate` will call out to `censys-search` for pivot
-queries, `censys-timeline` for historical analysis, and `censys-cql` for
+queries, `censys-timeline` for historical analysis, and `censys-cenql` for
 field path lookups. The command wrappers are self-contained and can be used
 independently for one-off tasks.
 
 ### Command skills
 
-- [censys-search](skills/censys-search/SKILL.md) — Search Censys data with CQL queries
+- [censys-search](skills/censys-search/SKILL.md) — Search Censys data with CenQL queries
 - [censys-view](skills/censys-view/SKILL.md) — View hosts, certificates, and web properties
 - [censys-aggregate](skills/censys-aggregate/SKILL.md) — Aggregate results by field (Report Builder)
 - [censys-enrich](skills/censys-enrich/SKILL.md) — Credit-free IP enrichment for SOC triage
@@ -143,7 +143,7 @@ independently for one-off tasks.
 
 ### Reference
 
-- [censys-cql](skills/censys-cql/SKILL.md) — CQL syntax, field paths, operators, query cookbook
+- [censys-cenql](skills/censys-cenql/SKILL.md) — CenQL syntax, field paths, operators, query cookbook
 
 ### Methodology & Analysis
 
@@ -165,7 +165,7 @@ invocation is one Censys API call unless pagination is involved.
 | censys-censeye | 1 per host | `--input-file` with N hosts = N calls. |
 | censys-search | 1 per page | Default is 1 page (100 results). `--max-pages -1` fetches up to 100 pages (10,000 results at page-size 100) — not unbounded. |
 | censys-timeline | 1–N | Depends on history depth and time window. Streaming mode pages automatically. |
-| censys-cql | 0 | Reference skill only — no CLI calls. |
+| censys-cenql | 0 | Reference skill only — no CLI calls. |
 | censys-analyze | 0 | Post-processing skill. Operates on saved output from other skills. |
 | censys-investigate | 10–50+ | Orchestrates multiple skills. See breakdown below. |
 
