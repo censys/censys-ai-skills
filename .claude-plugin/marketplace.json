@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "censys",
-      "description": "Claude Code skills for threat hunting, asset discovery, and security research with the Censys CLI",
+      "description": "Censys CLI skills for AI agents: search, pivot, timeline, and investigate internet infrastructure.",
       "author": {
         "name": "Brandon Levene",
         "email": "blevene@censys.com"
