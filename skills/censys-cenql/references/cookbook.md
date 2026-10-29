@@ -16,7 +16,7 @@ censys search "host.ip: '198.51.100.0/24'"
 # 4. Hosts on a specific autonomous system
 censys search "host.autonomous_system.asn: 13335"
 
-# 5. Hosts running nginx (use software field — header queries return 422; see Gotcha #3)
+# 5. Hosts running nginx (software field; for raw headers see example 16)
 censys search "host.services.software.product: nginx"
 
 # 6. Certificates issued by Let's Encrypt (quoted apostrophe)
@@ -31,8 +31,8 @@ censys search "host.services.jarm: <jarm_hash>"
 # 9. Hosts labeled as remote-access exposed
 censys search 'labels="remote-access"'
 
-# 10. Web properties running Apache
-censys search "webproperty.software.product: Apache"
+# 10. Web properties running Apache httpd (prefix is web.; product is http_server, not Apache)
+censys search 'web.software: (vendor="apache" and product="http_server")'
 
 # 11. Hosts with a specific HTTP body hash (e.g., a custom web app)
 censys search 'host.services.endpoints.http.body_hash_sha256="<sha256>"'
@@ -48,4 +48,10 @@ censys search 'host.services.endpoints.cobalt_strike.x64.watermark=987654321'
 
 # 15. Hosts running Cobalt Strike with a specific public key
 censys search 'host.services.endpoints.cobalt_strike.x64.public_key="<base64_key>"'
+
+# 16. Hosts with a specific HTTP response header value (key: matches all casings; see Gotcha #3)
+censys search 'host.services: (endpoints.http.headers: (key: "X-Powered-By" and value: "Express"))'
+
+# 17. Apache services that announce HTTP/2 with an Upgrade header (header pinned to the same service)
+censys search 'host.services: (software.product="http_server" and endpoints.http.headers: (key: "Upgrade" and value: "h2"))'
 ```
