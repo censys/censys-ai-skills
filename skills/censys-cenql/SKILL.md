@@ -35,7 +35,7 @@ This skill is a reference only — it does not execute queries. Once the query s
 ## Host fields
 
 - **Network**: `host.ip`, `host.services.port`, `host.services.protocol`, `host.services.transport_protocol`
-- **Banners/headers**: `host.services.banner`, `host.services.banner_hash_sha256`, `host.services.http.response.headers.*`. Note: for HTTP body, title, and favicon content, use the Endpoint fields below — `host.services.http.response.body` does NOT work in CenQL v2.
+- **Banners/headers**: `host.services.banner`, `host.services.banner_hash_sha256`, `host.services.endpoints.http.headers: (key: "<name>" and value: "<value>")` (see Gotchas #3). Note: for HTTP body, title, and favicon content, use the Endpoint fields below — `host.services.http.response.body` does NOT work in CenQL v2.
 - **TLS/certs**: `host.services.tls.certificates.leaf_fp_sha_256`, `host.services.tls.certificates.leaf_data.*`
 - **SSH**: `host.services.ssh.server_host_key.fingerprint_sha256`
 - **Fingerprints**: `host.services.jarm`, `host.services.tls.ja3s`
@@ -65,6 +65,7 @@ endpoint type Censys adds. When in doubt about a service sub-field, try the
 | Body content (text search) | `host.services.endpoints.http.body` |
 | Favicon hash (SHA-256) | `host.services.endpoints.http.favicons.hash_sha256` |
 | HTML tags | `host.services.endpoints.http.html_tags` |
+| Response header | `host.services.endpoints.http.headers: (key: "<name>" and value: "<value>")` |
 
 #### Cobalt Strike
 
@@ -153,6 +154,7 @@ CenQL search fields do NOT always match the JSON paths in `censys view` / `censy
 | Labels | `labels` (top-level) | `.labels` (top-level, NOT `host.labels`) |
 | Body hash | `host.services.endpoints.http.body_hash_sha256` | `.services[].endpoints[].http.body_hash_sha256` |
 | HTML title | `host.services.endpoints.http.html_title` | `.services[].endpoints[].http.html_title` |
+| Response header | `host.services.endpoints.http.headers: (key: "Server" and value: "Apache")` | `.services[].endpoints[].http.headers.Server.headers[]` (object keyed by header name; each value is `{"headers": [...]}`) |
 | Body content | `host.services.endpoints.http.body` | `.services[].endpoints[].http.body` |
 | Favicon hash | `host.services.endpoints.http.favicons.hash_sha256` | `.services[].endpoints[].http.favicons[].hash_sha256` |
 | CS watermark | `host.services.endpoints.cobalt_strike.x64.watermark` | `.services[].endpoints[].cobalt_strike.x64.watermark` |
@@ -177,10 +179,20 @@ CenQL search fields do NOT always match the JSON paths in `censys view` / `censy
    `endpoints.` nesting is required for every endpoint type. See the Endpoint
    fields tables above.
 
-3. **No direct header-based queries.** Compound queries on specific HTTP headers
-   (e.g., `host.services.http.headers.(key=X-Powered-By and value.headers=Express)`)
-   return 422 (verified on cencli 1.1.3, 2026-08). Use `host.services.software.product` instead — Censys extracts
-   software identity from headers into the software field.
+3. **HTTP header queries use a nested key/value block.** Put the header name in
+   `key` and the header value in `value`, under `endpoints.http.headers`:
+   `host.services: (endpoints.http.headers: (key: "X-Powered-By" and value: "Express"))`.
+   - A dotted header name does not work. `host.services.endpoints.http.headers.upgrade`
+     and `host.services.http.response.headers.server` return 422 "Field not found".
+   - `key=` is case-sensitive. `key="x-powered-by"` matched 29,094 hosts.
+     `key="X-Powered-By"` matched 1,204,043 hosts. Use `key:` to match all casings
+     (1,231,579 hosts).
+   - Put the header block inside the same `host.services: (...)` block as the other
+     service conditions. This pins the header to the same service.
+   - For software identity, `host.services.software.product` is often simpler. Censys
+     extracts software identity from headers into the software field.
+
+   (Verified with the `censys` CLI on 2026-10-29.)
 
 4. **Body text search uses `:`, not `=`.** Use
    `host.services.endpoints.http.body:"search string"` (colon, flexible match) for
