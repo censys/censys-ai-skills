@@ -31,8 +31,8 @@ censys search "host.services.jarm: <jarm_hash>"
 # 9. Hosts labeled as remote-access exposed
 censys search 'labels="remote-access"'
 
-# 10. Web properties running Apache
-censys search "webproperty.software.product: Apache"
+# 10. Web properties running Apache httpd (prefix is web.; product is http_server, not Apache)
+censys search 'web.software: (vendor="apache" and product="http_server")'
 
 # 11. Hosts with a specific HTTP body hash (e.g., a custom web app)
 censys search 'host.services.endpoints.http.body_hash_sha256="<sha256>"'

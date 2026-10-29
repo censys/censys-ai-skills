@@ -88,9 +88,11 @@ running a wildcard query (`field:*`) before interpreting 0 results as "unique."
 
 ## Web property fields
 
-- **Identity**: `webproperty.hostname`, `webproperty.endpoints.ip`, `webproperty.endpoints.port`
-- **Response/classification**: `webproperty.endpoints.http.status_code`, `webproperty.labels`
-- **Software**: `webproperty.software.vendor`, `webproperty.software.product`
+The web property prefix is `web.`. The prefix `webproperty.` returns 422 "Field not found".
+
+- **Identity**: `web.hostname`, `web.endpoints.ip`, `web.endpoints.port`
+- **Response/classification**: `web.endpoints.http.status_code`, `web.labels`
+- **Software**: `web.software.vendor`, `web.software.product`. Product values use the Censys name, for example `http_server` for Apache httpd, not `Apache`.
 
 For copy-paste query examples, see [${CLAUDE_SKILL_DIR}/references/cookbook.md](${CLAUDE_SKILL_DIR}/references/cookbook.md).
 
